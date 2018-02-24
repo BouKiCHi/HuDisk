@@ -6,7 +6,7 @@ namespace Disk
     class Program
   {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.0";
+    const string ProgramVersion = "1.01";
 
     static void Usage() {
         Console.WriteLine("Usage HuDisk image.d88 [files..] [options]");
@@ -106,6 +106,7 @@ namespace Disk
             mode = RunModeType.List;
           break;
           case (int)OptionType.Format:
+            mode = RunModeType.Add;
             FormatImage = true;
           break;
         }
@@ -120,10 +121,6 @@ namespace Disk
 
       switch(mode) {
         case RunModeType.Add:
-          if (miniopt.Files.Count == 1) {
-            Console.WriteLine("Missing file to add.");
-            return false;
-          }
           Console.Write("Add files ");
           Console.Write("Load:{0:X} Exec:{1:X}",LoadAddress,ExecuteAddress);
           Console.WriteLine(IplMode ? " IPL Mode" : "");
@@ -136,6 +133,10 @@ namespace Disk
             string s = miniopt.Files[i];
             d.AddFile(s);
           }
+          if (miniopt.Files.Count == 1) {
+            Console.WriteLine("No files to add.");
+          }
+
           d.DisplayFreeSpace();
           d.Write();
 

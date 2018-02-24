@@ -17,6 +17,7 @@ namespace Disk
         const int MaxTrack = 164;
 
         public int TrackPerSector = 16;
+        public int TrackMax2D = 80;
 
         public string Name;
         public bool IsWriteProtect;
@@ -55,9 +56,9 @@ namespace Disk
         public void Format2D()
         {
             DensityType = DiskType.Disk2D;
-            for (var t = 0; t < 80; t++)
+            for (var t = 0; t < TrackMax2D; t++)
             {
-                for (var s = 0; s < 16; s++)
+                for (var s = 0; s < TrackPerSector; s++)
                 {
                     var Sector = new SectorData();
                     Sector.Make(t >> 1, t & 1, s + 1, 1, 16, 0, false, 0, 256);
@@ -115,7 +116,6 @@ namespace Disk
 
         private void WriteSectors(FileStream fs)
         {
-
             foreach (SectorData s in Sectors)
             {
                 byte[] d = Plain2DFormat ? s.Data : s.GetBytes();
@@ -125,6 +125,7 @@ namespace Disk
 
         public bool Read()
         {
+            DensityType = DiskType.Disk2D;
             if (!File.Exists(ImageFile)) return false;
             var fs = new FileStream(ImageFile,
             FileMode.Open,

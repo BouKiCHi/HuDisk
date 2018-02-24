@@ -1,2 +1,4 @@
-test/TEST.2D
-test/TEST.D88
+test/*.2D
+test/*.D88
+bin
+obj

@@ -14,6 +14,8 @@ namespace Disk
         public int EntryPosition;
         public int EntrySector;
 
+        public byte[] DateTimeData = new byte[6];
+
         public string GetFilename()
         {
             if (Extension.Length == 0) return Name;
@@ -30,6 +32,24 @@ namespace Disk
                 ExecuteAddress.ToString("X4"),
                 StartCluster
             );
+        }
+
+        private byte ConvertToBCD(int num) {
+            byte r = (byte)(num % 10);
+            r |= (byte)(((num/10)%10) << 4);
+            return r;
+        }
+
+        public void SetTime(DateTime date)
+        {
+            DateTimeData[0] = ConvertToBCD(date.Year);
+            DateTimeData[1] = (byte)(((date.Month)%10) << 4);
+            DateTimeData[1] |= (byte)((int)date.DayOfWeek & 0x0f);
+            DateTimeData[2] = ConvertToBCD(date.Day);
+
+            DateTimeData[3] = ConvertToBCD(date.Hour);
+            DateTimeData[4] = ConvertToBCD(date.Minute);
+            DateTimeData[5] = ConvertToBCD(date.Second);
         }
     }
 }

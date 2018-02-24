@@ -39,7 +39,7 @@ namespace Disk
             dc.SetByte(1, 0x8f);
             for (var i = 0; i < 0x30; i++) dc.SetByte(0x50 + i, 0x8f);
 
-            for (var i = 0; i < 16; i++)
+            for (var i = 0; i < ClusterPerSector; i++)
             {
                 dc.SetBuffer(Sectors[FileEntrySector + i].Data);
                 dc.Fill(0xff);
@@ -50,6 +50,11 @@ namespace Disk
         {
             if (!Read()) Format2D();
             SetAllocateController();
+        }
+
+        public bool CheckFormat() {
+            if (DensityType != DiskType.Disk2D) return false;
+            return true;
         }
 
         public void Format() {
@@ -140,7 +145,7 @@ namespace Disk
                 var dc = new DataController(Sectors[Sector].Data);
                 for (var j = 0; j < 8; j++)
                 {
-                    int pos = (j * 32);
+                    int pos = (j * 0x20);
                     var mode = dc.GetByte(pos);
                     if (mode == EntryEnd) return null;
                     string Name = TextEncoding.GetString(dc.Copy(pos + 0x01, 13)).TrimEnd((Char)0x20);
@@ -184,9 +189,7 @@ namespace Disk
             dc.SetWord(pos + 0x14,fe.LoadAddress);
             dc.SetWord(pos + 0x16,fe.ExecuteAddress);
 
-            dc.SetWord(pos + 0x18,0x00);
-            dc.SetWord(pos + 0x1a,0x00);
-            dc.SetWord(pos + 0x1c,0x00);
+            dc.SetCopy(pos + 0x18,fe.DateTimeData);
 
             dc.SetWord(pos + 0x1e,fe.StartCluster);
         }
@@ -202,10 +205,8 @@ namespace Disk
             dc.SetWord(pos + 0x12,fe.Size);
             dc.SetWord(pos + 0x14,fe.LoadAddress);
             dc.SetWord(pos + 0x16,fe.ExecuteAddress);
-            
-            dc.SetWord(pos + 0x18,0x00);
-            dc.SetWord(pos + 0x1a,0x00);
-            dc.SetWord(pos + 0x1c,0x00);
+
+            dc.SetCopy(pos + 0x18,fe.DateTimeData);
             
             dc.SetWord(pos + 0x1e,fe.StartCluster * ClusterPerSector);
         }
@@ -255,13 +256,13 @@ namespace Disk
             int c = StartCluster;
             while(true) {
                 var sc = 0;
+                var s = (c*ClusterPerSector);
                 var LastSector = 0;
-                for(sc=0; sc < 16; sc++) {
-                    var s = (c*ClusterPerSector)+sc;
+                for(sc=0; sc < ClusterPerSector; sc++,s++) {
                     var Length = Size < SectorSize ? Size : SectorSize;
                     Sectors[s].Fill(0x00);
                     if (Size == 0) continue;
-                    fs.Read(Sectors[(c*ClusterPerSector)+sc].Data,0,Length);
+                    fs.Read(Sectors[s].Data,0,Length);
                     Size-=Length;
                     if (Length > 0) LastSector = sc;
                 }
@@ -279,8 +280,10 @@ namespace Disk
         public bool AddFile(string FilePath,int EntrySector = FileEntrySector) {
             if (!File.Exists(FilePath)) return false;
             var fi = new FileInfo(FilePath);
+            
             var Filename = Path.GetFileName(FilePath);
             var Size = (int)fi.Length;
+            var FileDate = File.GetLastWriteTime(FilePath);
             Console.WriteLine("Add:{0} Size:{1} {2}",Filename, Size, IplMode ? "IPL" : "");
 
             if (Size > 0xFFFF) {
@@ -295,6 +298,7 @@ namespace Disk
                 fe = GetNewFileEntry(EntrySector);
             }
             if (fe == null) return false;
+            fe.SetTime(FileDate);
             fe.Mode = BinaryFileMode;
             fe.Size = Size;
             fe.ExecuteAddress = ExecuteAddress;
