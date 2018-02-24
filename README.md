@@ -8,15 +8,17 @@
 
 * ファイルをディスクイメージに追加
 ```
- hudisk a image.d88 file.bin
+ hudisk -a image.d88 file.bin
 ```
 
 image.d88がなければ自動的に作成します。
 
 * ディスクイメージからファイルを取り出す
 ```
- hudisk x image.d88 
+ hudisk -x image.d88 
 ```
+
+* image.2dとすることで、プレーンフォーマットも利用できます。
 
 ## 履歴
 
