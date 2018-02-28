@@ -114,6 +114,7 @@ namespace Disk
             fe.Size = dc.GetWord(pos + 0x12);
             fe.LoadAddress = dc.GetWord(pos + 0x14);
             fe.ExecuteAddress = dc.GetWord(pos + 0x16);
+            fe.DateTimeData = dc.Copy(pos + 0x18,6);
             fe.StartCluster = dc.GetWord(pos + 0x1e);
             return fe;
         }
@@ -188,9 +189,7 @@ namespace Disk
             dc.SetWord(pos + 0x12,fe.Size);
             dc.SetWord(pos + 0x14,fe.LoadAddress);
             dc.SetWord(pos + 0x16,fe.ExecuteAddress);
-
             dc.SetCopy(pos + 0x18,fe.DateTimeData);
-
             dc.SetWord(pos + 0x1e,fe.StartCluster);
         }
 
@@ -205,9 +204,7 @@ namespace Disk
             dc.SetWord(pos + 0x12,fe.Size);
             dc.SetWord(pos + 0x14,fe.LoadAddress);
             dc.SetWord(pos + 0x16,fe.ExecuteAddress);
-
             dc.SetCopy(pos + 0x18,fe.DateTimeData);
-            
             dc.SetWord(pos + 0x1e,fe.StartCluster * ClusterPerSector);
         }
 
