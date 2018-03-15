@@ -9,10 +9,6 @@
                 "build",
                 "${workspaceFolder}/HuDisk.csproj"
             ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
             "problemMatcher": "$msCompile"
         }
     ]

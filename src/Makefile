@@ -4,11 +4,13 @@ SRCS += HuDisk.cs HuBasicDiskImage.cs DataController.cs MiniOption.cs
 SRCS += DiskImage.cs HuFileEntry.cs SectorData.cs
 
 TARGET = hudisk.exe
+TARGET_PATH = ../$(TARGET)
 
-all : $(TARGET)
+all : $(TARGET_PATH)
 
-$(TARGET) : $(SRCS)
+$(TARGET_PATH) : $(SRCS)
 	$(CSC) /out:$(TARGET) $^
+	mv $(TARGET) $(TARGET_PATH)
 
 clean : 
-	rm -f $(TARGET)
+	rm -f $(TARGET_PATH)
