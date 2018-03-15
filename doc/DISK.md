@@ -26,7 +26,7 @@
 | ディスクサイズ         | 0x1c | 4       | ヘッダと全トラック         |
 | トラック先頭オフセット | 0x20 | 4*164   | [2]                        |
 
-[1] 0x00=2D 0x10=2DD 0x20=2HD 0x30=1D 0x40=1DD
+[1] 0x00=2D 0x10=2DD 0x20=2HD 0x30=1D 0x40=1DD  
 [2] ファイル先頭からのオフセット トラック0～163
 
 ## トラック
@@ -47,7 +47,7 @@
 | このセクタのデータサイズ | 0x0e | 2      |                              |
 | データ                   | 0x10 | 不定   | セクタサイズ分               |
 
-[1] 0=128bytes 1=256bytes 2=512bytes 3=1024bytes ... 128<<N
+[1] 0=128bytes 1=256bytes 2=512bytes 3=1024bytes ... 128<<N  
 [2] 0x00=倍密度 0x40=単密度 0x01=高密度
 
 ### ステータス詳細
@@ -118,8 +118,6 @@
 
 ### 参照元
 
-http://gra4.hatenadiary.jp/entry/20171108/1510096429
-https://github.com/jpzm/wii88/blob/master/document/FORMAT.TXT
-http://www.z88dk.org/tools/x1/
-
-
+http://gra4.hatenadiary.jp/entry/20171108/1510096429  
+https://github.com/jpzm/wii88/blob/master/document/FORMAT.TXT  
+http://www.z88dk.org/tools/x1/  

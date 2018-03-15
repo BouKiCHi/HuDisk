@@ -3,7 +3,7 @@ using System;
 namespace Disk {
   class HuDisk {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.02";
+    const string ProgramVersion = "1.03";
     
     void Usage() {
         Console.WriteLine("Usage HuDisk image.d88 [files..] [options]");
