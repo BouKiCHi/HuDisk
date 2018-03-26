@@ -3,7 +3,7 @@ using System;
 namespace Disk {
   class HuDisk {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.03";
+    const string ProgramVersion = "1.04";
     
     void Usage() {
         Console.WriteLine("Usage HuDisk image.d88 [files..] [options]");
@@ -17,6 +17,7 @@ namespace Disk {
         Console.WriteLine(" -i,--ipl <iplname> ... added file as a IPL binary");
         Console.WriteLine(" -r,--read  <address> ... set load address");
         Console.WriteLine(" -g,--go  <address> ... set execute address");
+        Console.WriteLine(" --x1s ... x1save.exe compatible mode");
         Console.WriteLine();
         Console.WriteLine(" -h,-?,--help ... this one");
     }
@@ -38,7 +39,8 @@ namespace Disk {
       Extract,
       List,
       Help,
-      Format
+      Format,
+      X1S
     }
 
     int ReadValue(string s) {
@@ -58,12 +60,14 @@ namespace Disk {
         new MiniOption.DefineData((int)OptionType.Extract,"x","extract",false),
         new MiniOption.DefineData((int)OptionType.Format,null,"format",false),
         new MiniOption.DefineData((int)OptionType.List,"l","list",false),
+        new MiniOption.DefineData((int)OptionType.X1S,null,"x1s",false),
         new MiniOption.DefineData((int)OptionType.Help,"h","help",false),
         new MiniOption.DefineData((int)OptionType.Help,"?",null,false)
       });
 
       string IplName = "";
       bool IplMode = false;
+      bool X1SMode = false;
       bool FormatImage = false;
       int ExecuteAddress = 0x00;
       int LoadAddress = 0x00;
@@ -93,6 +97,9 @@ namespace Disk {
             IplMode = true;
             IplName = o.Value;
           break;
+          case (int)OptionType.X1S:
+            X1SMode=true;
+          break;
           case (int)OptionType.Add:
             mode = RunModeType.Add;
           break;
@@ -118,9 +125,14 @@ namespace Disk {
         case RunModeType.Add:
           Console.Write("Add files ");
           Console.Write("Load:{0:X} Exec:{1:X}",LoadAddress,ExecuteAddress);
+          if (X1SMode) Console.Write(" X1S Mode");
           Console.WriteLine(IplMode ? " IPL Mode" : "");
+
+          if (IplMode && IplName.Length > 13) IplName = IplName.Substring(0,13);
+
           d.IplMode = IplMode;
           d.IplName = IplName;
+          d.X1SMode = X1SMode;
           d.LoadAddress = LoadAddress;
           d.ExecuteAddress = ExecuteAddress;
 

@@ -26,6 +26,9 @@ namespace Disk
         public int ExecuteAddress;
         public int LoadAddress;
 
+        public bool X1SMode;
+
+
         public HuBasicDiskImage(string Path) : base(Path)
         {
         }
@@ -77,6 +80,25 @@ namespace Disk
             }
             return -1;
         }
+
+        public int GetNextFreeSerialCluster(int Clusters) {
+            int FreeCount = 0;
+            int FreeStart = 0;
+            for(var i=0; i<MaxCluster; i++) {
+                var ptr = AllocationController.GetByte(i);
+                if (ptr == 0x00) {
+                    if (FreeCount == 0) {
+                        FreeStart=i;
+                    }
+                    FreeCount++;
+                    if (FreeCount == Clusters) return FreeStart;
+                } else {
+                    FreeCount = 0;
+                }
+            }
+            return -1;
+        }
+
 
         public int GetFreeClusters() {
             var Result = 0;
@@ -141,6 +163,14 @@ namespace Disk
         {
             int Sector = EntrySector;
             Filename = Filename.ToUpper();
+            string Name = Path.GetFileNameWithoutExtension(Filename);
+            if (Name.Length > 13) Name = Name.Substring(0,13);
+            string Extension = Path.GetExtension(Filename);
+            if (Extension.Length > 0) Extension = Extension.Substring(1);
+            if (Extension.Length > 4) Extension = Extension.Substring(0,4);
+
+            Filename = Name + "." + Extension;
+            
             for (int i = 0; i < ClusterPerSector; i++,Sector++)
             {
                 var dc = new DataController(Sectors[Sector].Data);
@@ -149,9 +179,9 @@ namespace Disk
                     int pos = (j * 0x20);
                     var mode = dc.GetByte(pos);
                     if (mode == EntryEnd) return null;
-                    string Name = TextEncoding.GetString(dc.Copy(pos + 0x01, 13)).TrimEnd((Char)0x20);
-                    string Extension = TextEncoding.GetString(dc.Copy(pos + 0x0e, 4)).TrimEnd((Char)0x20);
-                    string EntryFilename = (Name + "." + Extension).ToUpper();
+                    string EntryName = TextEncoding.GetString(dc.Copy(pos + 0x01, 13)).TrimEnd((Char)0x20);
+                    string EntryExtension = TextEncoding.GetString(dc.Copy(pos + 0x0e, 4)).TrimEnd((Char)0x20);
+                    string EntryFilename = (EntryName + "." + EntryExtension).ToUpper();
                     if (Filename != EntryFilename) continue;
                     return GetEntry(dc,Sector,pos);
                 }
@@ -178,7 +208,20 @@ namespace Disk
             return null;
         }
 
+        public void FileEntryNormalize(HuFileEntry fe) {
+            if (fe.Name.Length > 13) {
+                fe.Name = fe.Name.Substring(0,13);
+            }
+            if (fe.Extension.StartsWith(".")) {
+                fe.Extension = fe.Extension.Substring(1);
+            }
+            if (fe.Extension.Length > 4) {
+                fe.Extension = fe.Extension.Substring(0,4);
+            }
+        }
+
         public void WriteFileEntry(HuFileEntry fe) {
+            FileEntryNormalize(fe);
             var dc = new DataController(Sectors[fe.EntrySector].Data);
             int pos = fe.EntryPosition;
             dc.SetByte(pos,fe.Mode);
@@ -199,7 +242,7 @@ namespace Disk
             dc.SetByte(pos,0x01);
             dc.Fill(0x20,pos + 0x01,13);
             dc.Fill(0x20,pos + 0x0e,4);
-            dc.SetCopy(pos + 0x01,TextEncoding.GetBytes(fe.Name));
+            dc.SetCopy(pos + 0x01,TextEncoding.GetBytes(IplName));
             dc.SetCopy(pos + 0x0e,TextEncoding.GetBytes("Sys"));
             dc.SetWord(pos + 0x12,fe.Size);
             dc.SetWord(pos + 0x14,fe.LoadAddress);
@@ -243,13 +286,14 @@ namespace Disk
             fs.Close();
         }
 
-        public void WriteFileToImage(string InputFile,int StartCluster,int Size) {
+        public void WriteFileToImage(string InputFile,int StartCluster,int Filesize) {
 
             var fs = new FileStream(InputFile,
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite);
 
+            int Size = Filesize;
             int c = StartCluster;
             while(true) {
                 var sc = 0;
@@ -264,6 +308,10 @@ namespace Disk
                     if (Length > 0) LastSector = sc;
                 }
                 if (Size == 0) {
+                    if (X1SMode && LastSector > 0) {                        
+                        LastSector--;
+                        if ((Filesize & 0xff) == 0) LastSector++;
+                    }
                     AllocationController.SetByte(c,0x80 + LastSector);
                     break;
                 }
@@ -302,15 +350,21 @@ namespace Disk
             fe.LoadAddress = LoadAddress;
             fe.Name = Path.GetFileNameWithoutExtension(FilePath);
             fe.Extension = Path.GetExtension(FilePath);
-            if (fe.Extension.StartsWith(".")) {
-                fe.Extension = fe.Extension.Substring(1);
+
+            int fc = -1;
+            if (IplMode) {
+                int Cluster = (fe.Size / (ClusterPerSector * SectorSize)) + 1;
+                fc = GetNextFreeSerialCluster(Cluster);
+            } else {
+                fc = GetNextFreeCluster();
             }
-            var fc = GetNextFreeCluster();
+            if (fc < 0) {
+                Console.WriteLine("no free cluster!");
+                return false;
+            }
             fe.StartCluster = fc;
             if (IplMode) {
                 Console.WriteLine("IPL Name:{0}",IplName);
-                fe.Name = IplName;
-                fe.Extension = "";
                 WriteFileEntry(fe);
                 WriteIplEntry(fe);
                 IplMode = false;
