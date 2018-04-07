@@ -8,7 +8,7 @@ namespace Disk
     class HuBasicDiskImage : DiskImage
     {
         const int AllocationTableSector = 14;
-        const int FileEntrySector = 16;
+        const int DefaultEntrySector = 16;
         const int MaxCluster = 80;
         const int ClusterPerSector = 16;
         const int SectorSize = 256;
@@ -28,9 +28,11 @@ namespace Disk
 
         public bool X1SMode;
 
+        public int CurrentEntrySector = 0;
 
         public HuBasicDiskImage(string Path) : base(Path)
         {
+            CurrentEntrySector = DefaultEntrySector;
         }
 
         public new void Format2D()
@@ -44,7 +46,7 @@ namespace Disk
 
             for (var i = 0; i < ClusterPerSector; i++)
             {
-                dc.SetBuffer(Sectors[FileEntrySector + i].Data);
+                dc.SetBuffer(Sectors[DefaultEntrySector + i].Data);
                 dc.Fill(0xff);
             }
         }
@@ -113,12 +115,16 @@ namespace Disk
             int c = StartCluster;
             while(true) {
                 var next = AllocationController.GetByte(c);
+                // 0x00 = 既に解放済み
+                if (next == 0x00) break;
                 AllocationController.SetByte(c,0x00);
+
                 var FillLength = (next & 0x80) != 0x00 ? (next & 0x0f) + 1 : ClusterPerSector;
 
                 for(var i=0; i < FillLength; i++) {
                     (new DataController(Sectors[(c*ClusterPerSector)+i].Data)).Fill(0);
                 }
+                // 0x8x = 最後のクラスタ
                 if ((next & 0x80) != 0x00) break;
                 c = next;
             }
@@ -163,14 +169,17 @@ namespace Disk
         {
             int Sector = EntrySector;
             Filename = Filename.ToUpper();
+            // 名前
             string Name = Path.GetFileNameWithoutExtension(Filename);
             if (Name.Length > 13) Name = Name.Substring(0,13);
+
+            // 拡張子
             string Extension = Path.GetExtension(Filename);
             if (Extension.Length > 0) Extension = Extension.Substring(1);
             if (Extension.Length > 4) Extension = Extension.Substring(0,4);
 
             Filename = Name + "." + Extension;
-            
+
             for (int i = 0; i < ClusterPerSector; i++,Sector++)
             {
                 var dc = new DataController(Sectors[Sector].Data);
@@ -220,6 +229,7 @@ namespace Disk
             }
         }
 
+        // ファイルエントリ書き出し
         public void WriteFileEntry(HuFileEntry fe) {
             FileEntryNormalize(fe);
             var dc = new DataController(Sectors[fe.EntrySector].Data);
@@ -236,6 +246,7 @@ namespace Disk
             dc.SetWord(pos + 0x1e,fe.StartCluster);
         }
 
+        // IPLエントリ書き出し
         public void WriteIplEntry(HuFileEntry fe) {
             var dc = new DataController(Sectors[0].Data);
             int pos = 0x00;
@@ -251,19 +262,19 @@ namespace Disk
             dc.SetWord(pos + 0x1e,fe.StartCluster * ClusterPerSector);
         }
 
-        public void ListFiles(int Sector = 16,string Directory = "")
+        public override void ListFiles(string Directory = "")
         {
-            var Files = GetEntriesFromSector(Sector);
+            var Files = GetEntriesFromSector(CurrentEntrySector);
             foreach(var f in Files) {
                 f.Description();
             }
         }
 
-        public void DisplayFreeSpace() {
+        public override void DisplayFreeSpace() {
             Console.WriteLine("Free:{0} Cluster(s)",GetFreeClusters());
         }
 
-        public void ExtractFile(string OutputFile,int StartCluster,int Size) {
+        public void ExtractFileFromCluster(string OutputFile,int StartCluster,int Size) {
 
             var fs = new FileStream(OutputFile,
             FileMode.OpenOrCreate,
@@ -273,6 +284,10 @@ namespace Disk
             int c = StartCluster;
             while(true) {
                 var next = AllocationController.GetByte(c);
+                if (next == 0x00) {
+                    Console.WriteLine("WARNING: Wrong cluster chain!!");
+                    break;
+                }
                 var FillLength = (next & 0x80) != 0x00 ? (next & 0x0f) + 1 : ClusterPerSector;
 
                 for(var i=0; i < FillLength; i++) {
@@ -308,7 +323,7 @@ namespace Disk
                     if (Length > 0) LastSector = sc;
                 }
                 if (Size == 0) {
-                    if (X1SMode && LastSector > 0) {                        
+                    if (X1SMode && LastSector > 0) {
                         LastSector--;
                         if ((Filesize & 0xff) == 0) LastSector++;
                     }
@@ -322,11 +337,12 @@ namespace Disk
             fs.Close();
         }
 
-        public bool AddFile(string FilePath,int EntrySector = FileEntrySector) {
+        public override bool AddFile(string FilePath,string EntryName) {
             if (!File.Exists(FilePath)) return false;
             var fi = new FileInfo(FilePath);
-            
-            var Filename = Path.GetFileName(FilePath);
+
+            // Filename = エントリ上のファイル名
+            var Filename = EntryName.Length > 0 ? EntryName : Path.GetFileName(FilePath);
             var Size = (int)fi.Length;
             var FileDate = File.GetLastWriteTime(FilePath);
             Console.WriteLine("Add:{0} Size:{1} {2}",Filename, Size, IplMode ? "IPL" : "");
@@ -336,20 +352,27 @@ namespace Disk
                 return false;
             }
 
-            var fe = GetFileEntry(Filename,EntrySector);
+            var fe = GetFileEntry(Filename,CurrentEntrySector);
+            // エントリに確保されていたクラスタを解放する
             if (fe != null) {
                 RemoveAllocation(fe.StartCluster);
             } else {
-                fe = GetNewFileEntry(EntrySector);
+                fe = GetNewFileEntry(CurrentEntrySector);
             }
+
+            if (fe == null) {
+                Console.WriteLine("no entry space!");
+                return false;
+            }
+
             if (fe == null) return false;
             fe.SetTime(FileDate);
             fe.Mode = BinaryFileMode;
             fe.Size = Size;
             fe.ExecuteAddress = ExecuteAddress;
             fe.LoadAddress = LoadAddress;
-            fe.Name = Path.GetFileNameWithoutExtension(FilePath);
-            fe.Extension = Path.GetExtension(FilePath);
+            fe.Name = Path.GetFileNameWithoutExtension(Filename);
+            fe.Extension = Path.GetExtension(Filename);
 
             int fc = -1;
             if (IplMode) {
@@ -380,14 +403,29 @@ namespace Disk
             return  "^" +  Regex.Escape(Pattern).Replace(@"\*", ".*" ).Replace( @"\?", "." ) + "$";
         }
 
-        public void ExtractFiles(string Pattern,int Sector = FileEntrySector) {
-            var r = new Regex(PatternToRegex(Pattern));
-            var Files = GetEntriesFromSector(Sector);
-            foreach(var f in Files) {
-                if (!r.IsMatch(f.GetFilename())) continue;
-                f.Description();
-                ExtractFile(f.GetFilename(),f.StartCluster,f.Size);
+        private void PatternFiles(string Pattern,bool Extract,bool Delete) {
+            var r = new Regex(PatternToRegex(Pattern),RegexOptions.IgnoreCase);
+            var Files = GetEntriesFromSector(CurrentEntrySector);
+            foreach(var fe in Files) {
+                if (!r.IsMatch(fe.GetFilename())) continue;
+                fe.Description();
+                if (Extract) {
+                    ExtractFileFromCluster(fe.GetFilename(),fe.StartCluster,fe.Size);
+                }
+                if (Delete) {
+                    fe.SetDelete();
+                    WriteFileEntry(fe);
+                    RemoveAllocation(fe.StartCluster);
+                }
             }
+        }
+
+        public override void ExtractFiles(string Pattern) {
+            PatternFiles(Pattern,true,false);
+        }
+
+        public override void DeleteFiles(string Pattern) {
+            PatternFiles(Pattern,false,true);
         }
     }
 }

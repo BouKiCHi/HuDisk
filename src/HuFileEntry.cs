@@ -75,5 +75,9 @@ namespace Disk
             DateTimeData[4] = ConvertToBCD(date.Minute);
             DateTimeData[5] = ConvertToBCD(date.Second);
         }
+
+        public void SetDelete() {
+            Mode = 0x00;
+        }
     }
 }

@@ -207,5 +207,25 @@ namespace Disk
                 if (SectorCount > TrackPerSector) SectorCount = 1;
             }
         }
+
+        public virtual bool AddFile(string FilePath,string EntryName) {
+            return false;
+        }
+
+        public virtual void ListFiles(string Directory = "")
+        {
+        }
+
+        public virtual void DisplayFreeSpace() {
+        }
+
+
+        public virtual void ExtractFiles(string Pattern) {
+        }
+
+        public virtual void DeleteFiles(string Pattern) {
+        }
+
+
     }
 }

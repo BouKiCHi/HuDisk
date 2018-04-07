@@ -11,11 +11,27 @@
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
             "args": [
-                "test/test.2d",
+                "test/IMAGE.D88",
                 "-a",
-                "--ipl",
-                "IPLNAMEABCDEFGHIJKLMN",
-                "test/LARGE_IPL.bin"
+                "test/data/TEST.txt",
+                "--name",
+                "000.BIN"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "HuDisk delete test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
+            "args": [
+                "test/IMAGE.D88",
+                "--delete",
+                "000.BIN"
             ],
             "cwd": "${workspaceFolder}/src",
             "console": "internalConsole",

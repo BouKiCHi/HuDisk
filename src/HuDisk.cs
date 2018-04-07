@@ -1,50 +1,41 @@
 using System;
 
-namespace Disk {
-  class HuDisk {
+namespace Disk
+{
+    class HuDisk : DiskManager {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.04";
+    const string ProgramVersion = "1.05";
+
+    string IplName = "";
+    bool IplMode = false;
+    bool X1SMode = false;
+    int ExecuteAddress = 0x00;
+    int LoadAddress = 0x00;
+
     
-    void Usage() {
-        Console.WriteLine("Usage HuDisk image.d88 [files..] [options]");
+    public override void Usage() {
+        Console.WriteLine("Usage HuDisk IMAGE.D88 [Files..] [Options...]");
         Console.WriteLine();
         Console.WriteLine(" Options...");
-        Console.WriteLine(" -a,--add files ...  Add file(s)");
-        Console.WriteLine(" -x,--extract files ... Extract file(s)");
-        Console.WriteLine(" -l,--list ... List file(s)");
+        Console.WriteLine(" -a,--add <files...>   Add file(s)");
+        Console.WriteLine(" -x,--extract [files...] Extract file(s)");
+        Console.WriteLine(" -l,--list     List file(s)");
+        Console.WriteLine(" -d,--delete   Delete file(s)");
         Console.WriteLine();
-        Console.WriteLine(" --format ... format image file");
-        Console.WriteLine(" -i,--ipl <iplname> ... added file as a IPL binary");
-        Console.WriteLine(" -r,--read  <address> ... set load address");
-        Console.WriteLine(" -g,--go  <address> ... set execute address");
-        Console.WriteLine(" --x1s ... x1save.exe compatible mode");
+        Console.WriteLine(" --format    Format image file");
+        Console.WriteLine(" -i,--ipl <iplname>    Added file as a IPL binary");
+        Console.WriteLine(" -r,--read  <address>    Set load address");
+        Console.WriteLine(" -g,--go  <address>    Set execute address");
+        Console.WriteLine(" --x1s    Set x1save.exe compatible mode");
+        Console.WriteLine(" --name <name>   Set entry name as <name>");
         Console.WriteLine();
-        Console.WriteLine(" -h,-?,--help ... this one");
+        Console.WriteLine(" -h,-?,--help  This one");
     }
 
-    
-    enum RunModeType {
-      None,
-      Add,
-      Extract,
-      List
-    };
-
-    enum OptionType {
-      None,
-      Go,
-      Read,
-      Ipl,
-      Add,
-      Extract,
-      List,
-      Help,
-      Format,
-      X1S
-    }
-
-    int ReadValue(string s) {
-      return Convert.ToInt32(s,16);
+    public override void AppendInfoForAdd() {
+        Console.Write("Load:{0:X} Exec:{1:X}",LoadAddress,ExecuteAddress);
+        if (X1SMode) Console.Write(" X1S Mode");
+        Console.WriteLine(IplMode ? " IPL Mode" : "");
     }
 
     public bool Run(string[] args)
@@ -53,24 +44,23 @@ namespace Disk {
 
       var miniopt = new MiniOption();
       miniopt.AddOptionDefines(new MiniOption.DefineData[] {
+        new MiniOption.DefineData((int)OptionType.Add,"a","add",false),
+        new MiniOption.DefineData((int)OptionType.Extract,"x","extract",false),
+        new MiniOption.DefineData((int)OptionType.List,"l","list",false),
+        new MiniOption.DefineData((int)OptionType.Delete,"d","delete",false),
+
         new MiniOption.DefineData((int)OptionType.Go, "g","go",true),
         new MiniOption.DefineData((int)OptionType.Read,"r","read",true),
         new MiniOption.DefineData((int)OptionType.Ipl,"i","ipl",true),
-        new MiniOption.DefineData((int)OptionType.Add,"a","add",false),
-        new MiniOption.DefineData((int)OptionType.Extract,"x","extract",false),
+
+
         new MiniOption.DefineData((int)OptionType.Format,null,"format",false),
-        new MiniOption.DefineData((int)OptionType.List,"l","list",false),
         new MiniOption.DefineData((int)OptionType.X1S,null,"x1s",false),
+        new MiniOption.DefineData((int)OptionType.EntryName,null,"name",true),
+
         new MiniOption.DefineData((int)OptionType.Help,"h","help",false),
         new MiniOption.DefineData((int)OptionType.Help,"?",null,false)
       });
-
-      string IplName = "";
-      bool IplMode = false;
-      bool X1SMode = false;
-      bool FormatImage = false;
-      int ExecuteAddress = 0x00;
-      int LoadAddress = 0x00;
 
       if (!miniopt.Parse(args)) return false;
 
@@ -80,93 +70,46 @@ namespace Disk {
         return false;
       }
 
-      RunModeType mode = RunModeType.List;
-
-      foreach(var o in miniopt.Result) {
-        switch(o.Type) {
-          case (int)OptionType.Go:
-            ExecuteAddress = ReadValue(o.Value);
-          break;
-          case (int)OptionType.Read:
-            LoadAddress = ReadValue(o.Value);
-          break;
-          case (int)OptionType.Help:
-            Usage();
-            return false;
-          case (int)OptionType.Ipl:
-            IplMode = true;
-            IplName = o.Value;
-          break;
-          case (int)OptionType.X1S:
-            X1SMode=true;
-          break;
-          case (int)OptionType.Add:
-            mode = RunModeType.Add;
-          break;
-          case (int)OptionType.Extract:
-            mode = RunModeType.Extract;
-          break;
-          case (int)OptionType.List:
-            mode = RunModeType.List;
-          break;
-          case (int)OptionType.Format:
-            mode = RunModeType.Add;
-            FormatImage = true;
-          break;
-        }
-      }
+      if (!CheckOption(miniopt)) return false;
 
       var ImageFile = miniopt.Files[0];
       Console.WriteLine("ImageFile:{0}",ImageFile);
       var d = new HuBasicDiskImage(ImageFile);
+
+      if (IplMode && IplName.Length > 13) IplName = IplName.Substring(0, 13);
+      d.IplMode = IplMode;
+      d.IplName = IplName;
+      d.X1SMode = X1SMode;
+      d.LoadAddress = LoadAddress;
+      d.ExecuteAddress = ExecuteAddress;
+
       if (FormatImage) d.Format(); else d.ReadOrFormat();
 
-      switch(mode) {
-        case RunModeType.Add:
-          Console.Write("Add files ");
-          Console.Write("Load:{0:X} Exec:{1:X}",LoadAddress,ExecuteAddress);
-          if (X1SMode) Console.Write(" X1S Mode");
-          Console.WriteLine(IplMode ? " IPL Mode" : "");
-
-          if (IplMode && IplName.Length > 13) IplName = IplName.Substring(0,13);
-
-          d.IplMode = IplMode;
-          d.IplName = IplName;
-          d.X1SMode = X1SMode;
-          d.LoadAddress = LoadAddress;
-          d.ExecuteAddress = ExecuteAddress;
-
-          for(var i=1; i<miniopt.Files.Count; i++) {
-            string s = miniopt.Files[i];
-            d.AddFile(s);
-          }
-          if (miniopt.Files.Count == 1) {
-            Console.WriteLine("No files to add.");
-          }
-
-          d.DisplayFreeSpace();
-          d.Write();
-
-        break;
-        case RunModeType.List:
-          Console.WriteLine("List files");
-          d.ListFiles();
-          d.DisplayFreeSpace();
-        break;
-        case RunModeType.Extract:
-          Console.WriteLine("Extract files");
-          if (miniopt.Files.Count == 1) {
-            d.ExtractFiles("*");
-            break;
-          }
-          for(var i=1; i<miniopt.Files.Count; i++) {
-            string s = miniopt.Files[i];
-            d.ExtractFiles(s);
-          }
-        break;
-      }
+      RunDiskEdit(miniopt,d);
 
       return true;
+    }
+
+     public override bool CheckOptionExternal(MiniOption.OptionData o) {
+        switch(o.Type) {
+            case (int)OptionType.Go:
+              ExecuteAddress = ReadValue(o.Value);
+            break;
+            case (int)OptionType.Read:
+              LoadAddress = ReadValue(o.Value);
+            break;
+            case (int)OptionType.Ipl:
+              IplMode = true;
+              IplName = o.Value;
+            break;
+            case (int)OptionType.EntryName:
+              EntryName = o.Value;
+            break;
+            case (int)OptionType.X1S:
+              X1SMode=true;
+            break;
+        }
+        return true;
     }
   }
 }
