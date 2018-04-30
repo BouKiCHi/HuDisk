@@ -70,6 +70,10 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 * 実行アドレス = $0000
 * ファイル書き込みの基本はバイナリモード
 
+## 技術情報
+[ディスクフォーマット](doc/DISK.MD)
+[HuBASICフォーマット](doc/HuBASIC_Format.md)
+
 ## 履歴
 * ver 1.05
 基本的な構造変更。
