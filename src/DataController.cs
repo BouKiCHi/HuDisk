@@ -67,9 +67,10 @@ namespace Disk
             Buffer[pos] = (byte)(value & 0xff);
         }
 
-        public void SetCopy(int pos, byte[] data)
+        public void SetCopy(int pos, byte[] data,int length = -1)
         {
-            for (var i = 0; i < data.Length; i++) Buffer[pos + i] = data[i];
+            if (length < 0 || data.Length < length) length = data.Length;
+            for (var i = 0; i < length; i++) Buffer[pos + i] = data[i];
         }
         public void Fill(int value, int pos, int length)
         {

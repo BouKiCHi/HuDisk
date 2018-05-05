@@ -113,8 +113,8 @@ function boundTest() {
 }
 
 # testFormat "FORMAT.D88"
-# testImage "TEST.D88"
-fillImage "TESTFILL.D88"
+testImage "TEST.D88"
+# fillImage "TESTFILL.D88"
 # boundTest
 
 

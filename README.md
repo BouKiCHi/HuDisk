@@ -75,6 +75,9 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 + [HuBASICフォーマット](doc/HuBASIC_Format.md)
 
 ## 履歴
+* ver 1.06
+2HDへの対応(フォーマット、ベタイメージ取扱いには現時点では未対応)。
+
 * ver 1.05
 基本的な構造変更。
 展開機能時に大文字小文字を区別しないようにした。

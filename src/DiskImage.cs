@@ -99,11 +99,12 @@ namespace Disk
             }
 
             var dc = new DataController(header);
-            dc.SetCopy(0, TextEncoding.GetBytes(this.Name));
+            dc.SetCopy(0, TextEncoding.GetBytes(this.Name),0x10);
             dc.SetByte(0x1a, IsWriteProtect ? 0x10 : 0x00);
             dc.SetByte(0x1b, (int)DensityType);
             dc.SetLong(0x1c, (ulong)ImageSize);
 
+            // トラック分のアドレスを出力する
             long a = 0;
             for (var i = 0; i < MaxTrack; i++)
             {
@@ -176,11 +177,6 @@ namespace Disk
             Console.Write("IsWriteProtect:{0}", IsWriteProtect ? "Yes" : "No");
             Console.Write(" DiskType:{0}", GetDiskTypeName());
             Console.WriteLine(" ImageSize:{0}", ImageSize);
-            for (var i = 0; i < MaxTrack; i++)
-            {
-                if (TrackAddress[i] == 0x0) break;
-                // Console.WriteLine("No:{0} Address:{1} ${1:X}", i, TrackAddress[i]);
-            }
         }
 
         void ReadSectors(FileStream fs)

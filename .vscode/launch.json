@@ -23,6 +23,36 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
+            "name": "HuDisk list test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
+            "args": [
+                "test/IMAGE.D88"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "HuDisk extract test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
+            "args": [
+                "test/IMAGE.D88",
+                "BIN1A",
+                "-x"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
             "name": "HuDisk delete test",
             "type": "coreclr",
             "request": "launch",

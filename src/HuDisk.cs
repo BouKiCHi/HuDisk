@@ -4,7 +4,7 @@ namespace Disk
 {
     class HuDisk : DiskManager {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.05";
+    const string ProgramVersion = "1.06";
 
     string IplName = "";
     bool IplMode = false;
@@ -14,6 +14,7 @@ namespace Disk
 
     
     public override void Usage() {
+        Console.WriteLine("{0} ver {1}",ProgramTitle, ProgramVersion);
         Console.WriteLine("Usage HuDisk IMAGE.D88 [Files..] [Options...]");
         Console.WriteLine();
         Console.WriteLine(" Options...");
@@ -40,8 +41,6 @@ namespace Disk
 
     public bool Run(string[] args)
     {
-      Console.WriteLine("{0} ver {1}",ProgramTitle, ProgramVersion);
-
       var miniopt = new MiniOption();
       miniopt.AddOptionDefines(new MiniOption.DefineData[] {
         new MiniOption.DefineData((int)OptionType.Add,"a","add",false),

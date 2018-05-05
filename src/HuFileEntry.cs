@@ -7,12 +7,16 @@ namespace Disk
         public int Mode;
         public string Name;
         public string Extension;
+        public int Password;
         public int Size;
         public int LoadAddress;
         public int ExecuteAddress;
         public int StartCluster;
         public int EntryPosition;
         public int EntrySector;
+
+        public const int MaxNameLength = 13;
+        public const int MaxExtensionLength = 3;
 
         public byte[] DateTimeData = new byte[6];
 
