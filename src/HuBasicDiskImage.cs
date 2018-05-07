@@ -27,7 +27,8 @@ namespace Disk
         const int EntryDelete = 0x00;
 
         const int PasswordNoUse = 0x20;
-
+        const int FileEntrySize = 0x20;
+        private const int EntriesInSector = 8;
         public int AllocationTableStart;
         public int EntrySector = 0;
         public int MaxCluster = 0;
@@ -42,12 +43,11 @@ namespace Disk
 
         public bool X1SMode;
 
-
         public HuBasicDiskImage(string Path) : base(Path)
         {
         }
 
-        public new void Format2D()
+        public override void Format2D()
         {
             base.Format2D();
             SetDiskParameter();
@@ -65,25 +65,48 @@ namespace Disk
             }
         }
 
-        public new void ReadOrFormat()
+        public override void Format2HD()
         {
-            if (!Read()) Format2D();
+            base.Format2HD();
+            SetDiskParameter();
+
+            var dc = new DataController(Sectors[AllocationTable2HDSector].Data);
+            dc.Fill(0);
+            dc.SetByte(0, 0x01);
+            dc.SetByte(1, 0x8f);
+            dc.SetByte(2, 0x8f);
+
+            dc = new DataController(Sectors[AllocationTable2HDSector+1].Data);
+            dc.Fill(0);            
+            for (var i = 0x7a; i <= 0x7F; i++) dc.SetByte(i, 0x8f);
+
+            for (var i = 0; i < ClusterPerSector; i++)
+            {
+                dc.SetBuffer(Sectors[EntrySector + i].Data);
+                dc.Fill(0xff);
+            }
+        }
+
+
+        public void ReadOrFormat()
+        {
+            if (!Read()) Format();
             SetDiskParameter();
             SetAllocateController();
         }
 
         public bool CheckFormat() {
-            if (DensityType != DiskType.Disk2D) return false;
+            if (ImageType != DiskType.Disk2D) return false;
             return true;
         }
 
-        public void Format() {
-            Format2D();
+        public void FormatDisk() {
+            Format();
             SetAllocateController();
         }
 
         private void SetDiskParameter() {
-            switch(DensityType) {
+            switch(ImageType) {
                 case DiskType.Disk2D:
                     AllocationTableStart = AllocationTable2DSector;
                     EntrySector = EntrySector2D;
@@ -99,7 +122,7 @@ namespace Disk
 
         private void SetAllocateController() {
             AllocationController = new DataController[2];
-            switch(DensityType) {
+            switch(ImageType) {
                 case DiskType.Disk2D:
                     AllocationController[0] = new DataController(Sectors[AllocationTable2DSector].Data);
                 break;
@@ -249,9 +272,9 @@ namespace Disk
             for (int i = 0; i < ClusterPerSector; i++,Sector++)
             {
                 var dc = new DataController(Sectors[Sector].Data);
-                for (var j = 0; j < 8; j++)
+                for (var j = 0; j < EntriesInSector; j++)
                 {
-                    int pos = (j * 0x20);
+                    int pos = (j * FileEntrySize);
                     var mode = dc.GetByte(pos);
                     if (mode == EntryEnd) return null;
                     string EntryName = TextEncoding.GetString(dc.Copy(pos + 0x01, HuFileEntry.MaxNameLength)).TrimEnd((Char)0x20);
@@ -266,12 +289,12 @@ namespace Disk
 
         public HuFileEntry GetNewFileEntry(int sector)
         {
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < ClusterPerSector; i++)
             {
                 var dc = new DataController(Sectors[sector + i].Data);
-                for (var j = 0; j < 8; j++)
+                for (var j = 0; j < EntriesInSector; j++)
                 {
-                    int pos = (j * 32);
+                    int pos = (j * FileEntrySize);
                     var mode = dc.GetByte(pos);
                     if (mode != EntryEnd && mode != EntryDelete) continue;
                     var fe = new HuFileEntry();

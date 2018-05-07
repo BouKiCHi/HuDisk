@@ -4,7 +4,7 @@ namespace Disk
 {
     class HuDisk : DiskManager {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.06";
+    const string ProgramVersion = "1.07";
 
     string IplName = "";
     bool IplMode = false;
@@ -12,6 +12,8 @@ namespace Disk
     int ExecuteAddress = 0x00;
     int LoadAddress = 0x00;
 
+    DiskImage.DiskType ImageType = DiskImage.DiskType.Disk2D;
+    bool SelectImageType = false;
     
     public override void Usage() {
         Console.WriteLine("{0} ver {1}",ProgramTitle, ProgramVersion);
@@ -24,6 +26,7 @@ namespace Disk
         Console.WriteLine(" -d,--delete   Delete file(s)");
         Console.WriteLine();
         Console.WriteLine(" --format    Format image file");
+        Console.WriteLine(" --type <type> Determine Image type (2d/2hd)");
         Console.WriteLine(" -i,--ipl <iplname>    Added file as a IPL binary");
         Console.WriteLine(" -r,--read  <address>    Set load address");
         Console.WriteLine(" -g,--go  <address>    Set execute address");
@@ -53,6 +56,7 @@ namespace Disk
         new MiniOption.DefineData((int)OptionType.Ipl,"i","ipl",true),
 
 
+        new MiniOption.DefineData((int)OptionType.ImageType,null,"type",true),
         new MiniOption.DefineData((int)OptionType.Format,null,"format",false),
         new MiniOption.DefineData((int)OptionType.X1S,null,"x1s",false),
         new MiniOption.DefineData((int)OptionType.EntryName,null,"name",true),
@@ -81,8 +85,11 @@ namespace Disk
       d.X1SMode = X1SMode;
       d.LoadAddress = LoadAddress;
       d.ExecuteAddress = ExecuteAddress;
+      if (SelectImageType) {
+        d.ImageType = ImageType;
+      }
 
-      if (FormatImage) d.Format(); else d.ReadOrFormat();
+      if (FormatImage) d.FormatDisk(); else d.ReadOrFormat();
 
       RunDiskEdit(miniopt,d);
 
@@ -107,8 +114,27 @@ namespace Disk
             case (int)OptionType.X1S:
               X1SMode=true;
             break;
+            case (int)OptionType.ImageType:
+              SetDiskType(o.Value);
+              break;
         }
         return true;
     }
-  }
+
+        private void SetDiskType(string value)
+        {
+          SelectImageType = true;
+          switch(value.ToLower()) {
+            case "2d":
+              ImageType = DiskImage.DiskType.Disk2D;
+              break;              
+            case "2hd":
+              ImageType = DiskImage.DiskType.Disk2HD;
+            break;
+            default:
+                Console.WriteLine("Unknown DiskType!!");
+            break;
+          }
+        }
+    }
 }

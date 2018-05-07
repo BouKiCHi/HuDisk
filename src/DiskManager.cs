@@ -31,7 +31,8 @@ namespace Disk
             Format,
             X1S,
             EntryName,
-            Delete
+            Delete,
+            ImageType
         }
 
         public virtual void AppendInfoForAdd()

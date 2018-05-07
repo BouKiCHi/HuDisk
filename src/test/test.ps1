@@ -5,7 +5,7 @@ $testFile = "TEST.TXT"
 $dataDirectory = "data"
 
 function hudisk($opt,$image,$file,$opts) {
-    echo ("Option:" + $opt + " Image:" + $image + " File:" + $file)
+    Write-Output ("Option:" + $opt + " Image:" + $image + " File:" + $file)
     ../../hudisk $opt $image $file $opts
 }
 
@@ -46,7 +46,7 @@ function testImage($image) {
     if ($compare -eq $NULL) {
         $result = "OK"
     }
-    Write-Output $result
+    Write-Output ("TEST RESULT:" + $result)
 }
 
 function testBoundary($image,$x1s) {

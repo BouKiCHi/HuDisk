@@ -37,6 +37,20 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
+            "name": "HuDisk format test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
+            "args": [
+                "test/IMAGE.2HD"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
             "name": "HuDisk extract test",
             "type": "coreclr",
             "request": "launch",
