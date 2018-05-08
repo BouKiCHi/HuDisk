@@ -4,7 +4,7 @@ namespace Disk
 {
     class HuDisk : DiskManager {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.07";
+    const string ProgramVersion = "1.08";
 
     string IplName = "";
     bool IplMode = false;
@@ -31,7 +31,7 @@ namespace Disk
         Console.WriteLine(" -r,--read  <address>    Set load address");
         Console.WriteLine(" -g,--go  <address>    Set execute address");
         Console.WriteLine(" --x1s    Set x1save.exe compatible mode");
-        Console.WriteLine(" --name <name>   Set entry name as <name>");
+        Console.WriteLine(" --name <name>   Set entry/output name as <name>");
         Console.WriteLine();
         Console.WriteLine(" -h,-?,--help  This one");
     }

@@ -369,11 +369,16 @@ namespace Disk
         }
 
         public void ExtractFileFromCluster(string OutputFile,int StartCluster,int Size) {
-
-            var fs = new FileStream(OutputFile,
-            FileMode.OpenOrCreate,
-            FileAccess.Write,
-            FileShare.ReadWrite);
+            
+            Stream fs;
+            if (OutputFile == "-") {
+                fs = Console.OpenStandardOutput();
+            } else {
+                fs = new FileStream(OutputFile,
+                FileMode.OpenOrCreate,
+                FileAccess.Write,
+                FileShare.ReadWrite);
+            }
 
             int c = StartCluster;
             while(true) {
@@ -506,7 +511,8 @@ namespace Disk
                 if (!r.IsMatch(fe.GetFilename())) continue;
                 fe.Description();
                 if (Extract) {
-                    ExtractFileFromCluster(fe.GetFilename(),fe.StartCluster,fe.Size);
+                    string name =!string.IsNullOrEmpty(OutputName) ? OutputName : fe.GetFilename();
+                    ExtractFileFromCluster(name,fe.StartCluster,fe.Size);
                 }
                 if (Delete) {
                     fe.SetDelete();

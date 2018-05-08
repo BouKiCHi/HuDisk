@@ -24,7 +24,7 @@ namespace Disk
         public int TrackPerSector = 0;
 
 
-        public string Name;
+        public string DiskName;
         public bool IsWriteProtect;
         public DiskType ImageType;
         public long ImageSize;
@@ -40,16 +40,20 @@ namespace Disk
 
         public bool PlainFormat = false;
 
+        public string OutputName;
+
         public DiskImage(string ImageFilePath)
         {
             this.ImageFile = ImageFilePath;
             Verbose = false;
-            Name = "";
+            DiskName = "";
             IsWriteProtect = false;
             ImageType = DiskType.Disk2D;
-#if NET40
+#if RELEASE
+            // Console.WriteLine("Encoding:932");
             TextEncoding = System.Text.Encoding.GetEncoding(932);
 #else
+            // Console.WriteLine("Encoding:ASCII");
             TextEncoding = System.Text.Encoding.ASCII;
 #endif
             var ext = Path.GetExtension(ImageFilePath);
@@ -133,7 +137,7 @@ namespace Disk
             }
 
             var dc = new DataController(header);
-            dc.SetCopy(0, TextEncoding.GetBytes(this.Name),0x10);
+            dc.SetCopy(0, TextEncoding.GetBytes(this.DiskName),0x10);
             dc.SetByte(0x1a, IsWriteProtect ? 0x10 : 0x00);
             dc.SetByte(0x1b, (int)ImageType);
             dc.SetLong(0x1c, (ulong)ImageSize);
@@ -206,7 +210,7 @@ namespace Disk
             fs.Read(header, 0, header.Length);
 
             var dc = new DataController(header);
-            this.Name = TextEncoding.GetString(dc.Copy(0, 17)).TrimEnd((Char)0);
+            this.DiskName = TextEncoding.GetString(dc.Copy(0, 17)).TrimEnd((Char)0);
             IsWriteProtect = dc.GetByte(0x1a) != 0x00;
             var t = dc.GetByte(0x1b);
             ImageType = (DiskType)Enum.ToObject(typeof(DiskType), t);
@@ -220,7 +224,7 @@ namespace Disk
 
         public void DiskDescription()
         {
-            Console.WriteLine("DiskName:{0}", this.Name);
+            Console.WriteLine("DiskName:{0}", this.DiskName);
             Console.Write("IsWriteProtect:{0}", IsWriteProtect ? "Yes" : "No");
             Console.Write(" DiskType:{0}", GetDiskTypeName());
             Console.WriteLine(" ImageSize:{0}", ImageSize);

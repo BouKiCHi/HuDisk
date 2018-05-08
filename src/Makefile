@@ -9,7 +9,7 @@ TARGET_PATH = ../$(TARGET)
 all : $(TARGET_PATH)
 
 $(TARGET_PATH) : $(SRCS)
-	$(CSC) /out:$(TARGET) $^
+	$(CSC) /define:RELEASE /out:$(TARGET) $^
 	mv $(TARGET) $(TARGET_PATH)
 
 clean : 
