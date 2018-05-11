@@ -351,9 +351,10 @@ namespace Disk
             dc.SetWord(pos + 0x16,fe.ExecuteAddress);
             dc.SetCopy(pos + 0x18,fe.DateTimeData);
 
-            dc.SetByte(pos + 0x1d,start>>16); // ???
-            dc.SetByte(pos + 0x1e,start & 0xff);
-            dc.SetByte(pos + 0x1f,(start>>7) & 0xff);
+            // 最上位は未調査
+            dc.SetByte(pos + 0x1d,(start>>14) &0x7f);
+            dc.SetByte(pos + 0x1e,start & 0x7f);
+            dc.SetByte(pos + 0x1f,(start>>7) & 0x7f);
         }
 
         public override void ListFiles(string Directory = "")

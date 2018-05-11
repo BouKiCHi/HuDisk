@@ -91,6 +91,9 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 + [HuBASICフォーマット](doc/HuBASIC_Format.md)
 
 ## 履歴
+* ver 1.09
+ファイルエントリ上のクラスタの書き込み値を修正。
+
 * ver 1.08
 文字エンコーディング処理の修正。
 展開時に出力ファイル名の指定で--nameオプションを利用可能にした。

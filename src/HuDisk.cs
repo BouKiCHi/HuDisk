@@ -4,7 +4,7 @@ namespace Disk
 {
     class HuDisk : DiskManager {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.08";
+    const string ProgramVersion = "1.09";
 
     string IplName = "";
     bool IplMode = false;
