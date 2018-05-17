@@ -17,8 +17,10 @@ namespace Disk
         const int MaxTrack = 164;
 
         const int TrackPerSector2D = 16;
+        const int TrackPerSector2DD = 16;
         const int TrackPerSector2HD = 26;
         const int TrackMax2D = 80;
+        const int TrackMax2DD = 160;
         const int TrackMax2HD = 154;
 
         public int TrackPerSector = 0;
@@ -73,29 +75,32 @@ namespace Disk
         public virtual void Format2D()
         {
             ImageType = DiskType.Disk2D;
-            for (var t = 0; t < TrackMax2D; t++)
+            TrackFormat(TrackMax2D, TrackPerSector2D);
+        }
+
+        private void TrackFormat(int TrackMax, int TrackPerSector)
+        {
+            for (var t = 0; t < TrackMax; t++)
             {
-                for (var s = 0; s < TrackPerSector2D; s++)
+                for (var s = 0; s < TrackPerSector; s++)
                 {
                     var Sector = new SectorData();
-                    Sector.Make(t >> 1, t & 1, s + 1, 1, TrackPerSector2D, 0, false, 0, 256);
+                    Sector.Make(t >> 1, t & 1, s + 1, 1, TrackPerSector, 0, false, 0, 256);
                     Sectors.Add(Sector);
                 }
             }
         }
 
+        public virtual void Format2DD()
+        {
+            ImageType = DiskType.Disk2DD;
+            TrackFormat(TrackMax2DD, TrackPerSector2DD);
+        }
+
         public virtual void Format2HD()
         {
             ImageType = DiskType.Disk2HD;
-            for (var t = 0; t < TrackMax2HD; t++)
-            {
-                for (var s = 0; s < TrackPerSector2HD; s++)
-                {
-                    var Sector = new SectorData();
-                    Sector.Make(t >> 1, t & 1, s + 1, 1, TrackPerSector2HD, 0, false, 0, 256);
-                    Sectors.Add(Sector);
-                }
-            }
+            TrackFormat(TrackMax2HD, TrackPerSector2HD);
         }
 
         public void Format() {
@@ -106,6 +111,9 @@ namespace Disk
                 break;
                 case DiskType.Disk2HD:
                     Format2HD();
+                break;
+                case DiskType.Disk2DD:
+                    Format2DD();
                 break;
             }
         }
@@ -182,6 +190,9 @@ namespace Disk
             switch(ImageType) {
                 case DiskType.Disk2D:
                     TrackPerSector = TrackPerSector2D;
+                    break;
+                case DiskType.Disk2DD:
+                    TrackPerSector = TrackPerSector2DD;
                     break;
                 case DiskType.Disk2HD:
                     TrackPerSector = TrackPerSector2HD;

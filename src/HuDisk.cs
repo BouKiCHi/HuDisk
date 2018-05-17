@@ -4,7 +4,7 @@ namespace Disk
 {
     class HuDisk : DiskManager {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.09";
+    const string ProgramVersion = "1.10";
 
     string IplName = "";
     bool IplMode = false;
@@ -26,7 +26,7 @@ namespace Disk
         Console.WriteLine(" -d,--delete   Delete file(s)");
         Console.WriteLine();
         Console.WriteLine(" --format    Format image file");
-        Console.WriteLine(" --type <type> Determine Image type (2d/2hd)");
+        Console.WriteLine(" --type <type> Determine Image type (2d/2dd/2hd)");
         Console.WriteLine(" -i,--ipl <iplname>    Added file as a IPL binary");
         Console.WriteLine(" -r,--read  <address>    Set load address");
         Console.WriteLine(" -g,--go  <address>    Set execute address");
@@ -127,6 +127,9 @@ namespace Disk
           switch(value.ToLower()) {
             case "2d":
               ImageType = DiskImage.DiskType.Disk2D;
+              break;              
+            case "2dd":
+              ImageType = DiskImage.DiskType.Disk2DD;
               break;              
             case "2hd":
               ImageType = DiskImage.DiskType.Disk2HD;

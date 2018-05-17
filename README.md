@@ -60,7 +60,7 @@ IPLプログラムとして登録する場合はファイルサイズ分の連�
 + -d,--delete ... ファイル削除
 
 + --format ... イメージをフォーマットする
-+ --type {type} ディスク種別を選択する。2HD/2D。
++ --type {type} ディスク種別を選択する。2HD/2DD/2D。
 + -i,--ipl {iplname} ... IPLバイナリとして追加する
 + -r,--read  {address} ... 読み出しアドレスの設定
 + -g,--go  {address} ... 実行アドレスの設定
@@ -91,6 +91,9 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 + [HuBASICフォーマット](doc/HuBASIC_Format.md)
 
 ## 履歴
+* ver 1.10
+2DDフォーマットのサポート。
+
 * ver 1.09
 ファイルエントリ上のクラスタの書き込み値を修正。
 

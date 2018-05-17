@@ -9,13 +9,16 @@ namespace Disk
     {
         const int AllocationTable2DSector = 14;
         const int EntrySector2D = 16;
+        const int MaxCluster2D = 80;
 
         const int AllocationTable2HDSector = 28;
         const int EntrySector2HD = 32;
-
-
-        const int MaxCluster2D = 80;
         const int MaxCluster2HD = 160;
+
+        const int AllocationTable2DDSector = 14;
+        const int EntrySector2DD = 16;
+        const int MaxCluster2DD = 160;
+
 
         const int ClusterPerSector = 16;
         const int SectorSize = 256;
@@ -47,50 +50,47 @@ namespace Disk
         {
         }
 
-        public override void Format2D()
+        private void FillFileSystem()
         {
-            base.Format2D();
-            SetDiskParameter();
-
-            var dc = new DataController(Sectors[AllocationTable2DSector].Data);
+            var dc = new DataController(Sectors[AllocationTableStart].Data);
             dc.Fill(0);
             dc.SetByte(0, 0x01);
             dc.SetByte(1, 0x8f);
-            for (var i = 0; i < 0x30; i++) dc.SetByte(0x50 + i, 0x8f);
 
+            switch(ImageType) {
+                case DiskType.Disk2D:
+                    for (var i = 0x50; i < 0x80; i++) dc.SetByte(i, 0x8f);
+                break;
+                case DiskType.Disk2DD:
+                    dc.SetBuffer(Sectors[AllocationTableStart + 1].Data);
+                    dc.Fill(0);
+                   for (var i = 0x20; i < 0x80; i++) dc.SetByte(i, 0x8f);
+                break;
+                case DiskType.Disk2HD:
+                    dc.SetByte(2, 0x8f);
+                    dc.SetBuffer(Sectors[AllocationTableStart + 1].Data);
+                    dc.Fill(0);
+                    for (var i = 0x7a; i < 0x80; i++) dc.SetByte(i, 0x8f);
+                break;
+            }
+            FormatEntry(dc);
+        }
+
+        private void FormatEntry(DataController dc)
+        {
             for (var i = 0; i < ClusterPerSector; i++)
             {
                 dc.SetBuffer(Sectors[EntrySector + i].Data);
                 dc.Fill(0xff);
             }
         }
-
-        public override void Format2HD()
-        {
-            base.Format2HD();
-            SetDiskParameter();
-
-            var dc = new DataController(Sectors[AllocationTable2HDSector].Data);
-            dc.Fill(0);
-            dc.SetByte(0, 0x01);
-            dc.SetByte(1, 0x8f);
-            dc.SetByte(2, 0x8f);
-
-            dc = new DataController(Sectors[AllocationTable2HDSector+1].Data);
-            dc.Fill(0);            
-            for (var i = 0x7a; i <= 0x7F; i++) dc.SetByte(i, 0x8f);
-
-            for (var i = 0; i < ClusterPerSector; i++)
-            {
-                dc.SetBuffer(Sectors[EntrySector + i].Data);
-                dc.Fill(0xff);
-            }
-        }
-
 
         public void ReadOrFormat()
         {
-            if (!Read()) Format();
+            if (!Read()) {
+                FormatDisk();
+                return;
+            }
             SetDiskParameter();
             SetAllocateController();
         }
@@ -102,6 +102,8 @@ namespace Disk
 
         public void FormatDisk() {
             Format();
+            SetDiskParameter();
+            FillFileSystem();
             SetAllocateController();
         }
 
@@ -117,20 +119,21 @@ namespace Disk
                     EntrySector = EntrySector2HD;
                     MaxCluster = MaxCluster2HD;
                 break;
+                case DiskType.Disk2DD:
+                    AllocationTableStart = AllocationTable2DDSector;
+                    EntrySector = EntrySector2DD;
+                    MaxCluster = MaxCluster2DD;
+                break;
+
             }
         }
 
         private void SetAllocateController() {
             AllocationController = new DataController[2];
-            switch(ImageType) {
-                case DiskType.Disk2D:
-                    AllocationController[0] = new DataController(Sectors[AllocationTable2DSector].Data);
-                break;
-                case DiskType.Disk2HD:
-                    AllocationController[0] = new DataController(Sectors[AllocationTable2HDSector].Data);
-                    AllocationController[1] = new DataController(Sectors[AllocationTable2HDSector+1].Data);
-                break;
-            }        
+            AllocationController[0] = new DataController(Sectors[AllocationTableStart].Data);
+            if (ImageType == DiskType.Disk2DD || ImageType ==DiskType.Disk2HD) {
+                AllocationController[1] = new DataController(Sectors[AllocationTableStart+1].Data);
+            }
         }
 
 

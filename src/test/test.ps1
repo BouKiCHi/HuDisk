@@ -1,5 +1,5 @@
 
-Write-Output "HuDisk test"
+Write-Output "--- HuDisk test ---"
 $testSrcFile = "TEST_SRC.TXT"
 $testFile = "TEST.TXT"
 $dataDirectory = "data"
@@ -112,6 +112,7 @@ function boundTest() {
     testBoundary "BOUND_X1SC.D88" "--x1s"
 }
 
+hudisk -h
 # testFormat "FORMAT.D88"
 testImage "TEST.D88"
 # fillImage "TESTFILL.D88"
