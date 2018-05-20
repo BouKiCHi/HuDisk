@@ -87,7 +87,7 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 * ファイル書き込みの基本はバイナリモード
 
 ## 技術情報
-+ [ディスクフォーマット](doc/DISK.MD)
++ [ディスクフォーマット](doc/DISK.md)
 + [HuBASICフォーマット](doc/HuBASIC_Format.md)
 
 ## 履歴
