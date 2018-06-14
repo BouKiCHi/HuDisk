@@ -1,5 +1,6 @@
 src/test/*.2HD
 src/test/*.2D
 src/test/*.D88
+src/test/*.BIN
 src/bin
 src/obj

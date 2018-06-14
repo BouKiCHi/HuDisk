@@ -32,9 +32,7 @@ function testImage($image) {
     }
     $srcPath = getDataPath $testSrcFile
     Copy-Item -Force $srcPath $testFile
-    if (Test-Path $image) {
-        Remove-Item $image
-    }
+
     hudisk "-a" $image $testFile
     Remove-Item $testFile
     hudisk "-x" $image $testFile
@@ -42,6 +40,38 @@ function testImage($image) {
     $srcData = (Get-Content $srcPath)
     $compare = Compare-Object $srcData (Get-Content $testFile)
 
+    $result = "FAIL"
+    if ($compare -eq $NULL) {
+        $result = "OK"
+    }
+    Write-Output ("TEST RESULT:" + $result)
+}
+
+
+function testOver64kImage($image) {
+    Write-Output ("testOver64kImage:" + $image)
+    if (Test-Path $image) {
+        Remove-Item -Force $image
+    }
+    $srcPath = getDataPath "256.BIN"
+    $srcTextPath = getDataPath "TEST_SRC.TXT"
+    $test64kBin = "TEST64K.BIN"
+
+    $tmp = (Get-Content -Encoding Byte $srcPath)
+    $tmp2 = $tmp
+    0..254 | ForEach-Object { $tmp += $tmp2 }
+    $tmp += (Get-Content -Encoding Byte $srcTextPath)
+    $tmp | Set-Content $test64kBin -Encoding Byte 
+
+    Write-Output  "Append..."
+    hudisk "-a" $image $test64kBin
+    Remove-Item $test64kBin
+     Write-Output  "Extract..."
+    hudisk "-x" $image $test64kBin
+
+    Write-Output  "Compare..."
+    $resultData = (Get-Content -Encoding Byte $test64kBin)
+    $compare = Compare-Object $tmp $resultData
     $result = "FAIL"
     if ($compare -eq $NULL) {
         $result = "OK"
@@ -112,11 +142,13 @@ function boundTest() {
     testBoundary "BOUND_X1SC.D88" "--x1s"
 }
 
+Write-Output "Version Check"
 hudisk -h
 # testFormat "FORMAT.D88"
-testImage "TEST.D88"
+# testImage "TEST.D88"
 # fillImage "TESTFILL.D88"
 # boundTest
+testOver64kImage "TEST.D88"
 
 
 

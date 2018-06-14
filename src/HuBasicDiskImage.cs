@@ -395,9 +395,11 @@ namespace Disk
                 var FillLength = end ? (next & 0x0f) + 1 : ClusterPerSector;
 
                 for(var i=0; i < FillLength; i++) {
-                    var Length = Size < SectorSize ? Size : SectorSize;
+                    var Length = SectorSize;
+                    if (end && (i + 1) == FillLength) {
+                       Length = Size % SectorSize; 
+                    }
                     fs.Write(Sectors[(c*ClusterPerSector)+i].Data,0,Length);
-                    Size-=Length;
                 }
                 if (end) break;
                 c = next;
@@ -450,11 +452,6 @@ namespace Disk
             var Size = (int)fi.Length;
             var FileDate = File.GetLastWriteTime(FilePath);
             Console.WriteLine("Add:{0} Size:{1} {2}",Filename, Size, IplMode ? "IPL" : "");
-
-            if (Size > 0xFFFF) {
-                Console.WriteLine("too big filesize!");
-                return false;
-            }
 
             var fe = GetFileEntry(Filename,EntrySector);
             // エントリに確保されていたクラスタを解放する

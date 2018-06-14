@@ -57,8 +57,8 @@
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
             "args": [
-                "test/IMAGE.D88",
-                "BIN1A",
+                "test/TEST.D88",
+                "TEST64K.BIN",
                 "-x"
             ],
             "cwd": "${workspaceFolder}/src",

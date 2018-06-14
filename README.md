@@ -91,6 +91,9 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 + [HuBASICフォーマット](doc/HuBASIC_Format.md)
 
 ## 履歴
+* ver 1.11
+65535バイト以上のファイルの読み書きを可能にした。
+
 * ver 1.10
 2DDフォーマットのサポート。
 
