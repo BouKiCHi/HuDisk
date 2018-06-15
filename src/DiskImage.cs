@@ -14,6 +14,10 @@ namespace Disk
             Disk2HD = 0x20
         }
 
+        const int DefaultHeaderSize = 0x2b0;
+
+        const int DefaultSectorSize = 256;
+
         const int MaxTrack = 164;
 
         const int TrackPerSector2D = 16;
@@ -34,6 +38,8 @@ namespace Disk
 
         protected long[] TrackAddress = new long[MaxTrack];
 
+        protected long CurrentHeaderSize = 0;
+
 
         protected List<SectorData> Sectors = new List<SectorData>();
 
@@ -42,7 +48,7 @@ namespace Disk
 
         public bool PlainFormat = false;
 
-        public string OutputName;
+        public string EntryName;
 
         public DiskImage(string ImageFilePath)
         {
@@ -61,11 +67,10 @@ namespace Disk
             var ext = Path.GetExtension(ImageFilePath);
             if (ext.StartsWith(".")) ext = ext.Substring(1);
             ext = ext.ToUpper();
-            SpecialExtension(ext);
-
+            CheckExtension(ext);
         }
 
-        private void SpecialExtension(string ext)
+        private void CheckExtension(string ext)
         {
             if (ext != "2D" && ext != "2HD") return;
             PlainFormat = true;
@@ -80,13 +85,14 @@ namespace Disk
 
         private void TrackFormat(int TrackMax, int TrackPerSector)
         {
-            for (var t = 0; t < TrackMax; t++)
-            {
-                for (var s = 0; s < TrackPerSector; s++)
-                {
+            var Position = PlainFormat ? 0x0 : DefaultHeaderSize;
+            for (var t = 0; t < TrackMax; t++) {
+                TrackAddress[t] = Position;
+                for (var s = 0; s < TrackPerSector; s++) {
                     var Sector = new SectorData();
-                    Sector.Make(t >> 1, t & 1, s + 1, 1, TrackPerSector, 0, false, 0, 256);
+                    Sector.Make(t >> 1, t & 1, s + 1, 1, TrackPerSector, 0, false, 0, DefaultSectorSize);
                     Sectors.Add(Sector);
+                    Position += DefaultSectorSize;
                 }
             }
         }
@@ -116,6 +122,7 @@ namespace Disk
                     Format2DD();
                 break;
             }
+            CurrentHeaderSize = 0;
         }
 
         public void Write()
@@ -125,22 +132,39 @@ namespace Disk
             FileAccess.Write,
             FileShare.ReadWrite);
 
-            if (!PlainFormat) WriteHeader(fs);
-            WriteSectors(fs);
+            var RebuildImage = IsRewriteImage();
+            if (Verbose) Console.WriteLine("RebuildImage:" + RebuildImage.ToString());
+            if (!PlainFormat) {
+                if (RebuildImage) WriteHeader(fs);
+            }
+            WriteSectors(fs,RebuildImage);
             fs.Close();
+        }
+
+        public bool IsRewriteImage() {
+            var LastTrack = -1;
+            var MaxDirtyTrack = 0;
+            foreach (SectorData s in Sectors) {
+                if (s.IsDirty) MaxDirtyTrack = s.Track;
+            }
+
+            for (var i = 0; i < MaxTrack; i++) {
+                if (TrackAddress[i] == 0x0) break;
+                LastTrack = i;
+            }
+            if (!PlainFormat && CurrentHeaderSize != DefaultHeaderSize) return true;
+            if (LastTrack < MaxDirtyTrack) return true;
+
+            return false;
         }
 
         private void WriteHeader(FileStream fs)
         {
-            byte[] header = new byte[0x2b0];
+            byte[] header = new byte[DefaultHeaderSize];
             ImageSize = header.Length;
             int t = 0;
-            foreach (SectorData s in Sectors)
-            {
-                if (s.Sector == 0x01)
-                {
-                    TrackAddress[t++] = ImageSize;
-                }
+            foreach (SectorData s in Sectors) {
+                if (s.Sector == 0x01) TrackAddress[t++] = ImageSize; 
                 ImageSize += s.GetLength();
             }
 
@@ -161,10 +185,27 @@ namespace Disk
             fs.Write(header, 0, header.Length);
         }
 
-        private void WriteSectors(FileStream fs)
+        private void WriteSectors(FileStream fs,bool isRebuild)
         {
+            var Length = fs.Length;
+            var Position = TrackAddress[0];
+            var Skip = true;
+
             foreach (SectorData s in Sectors)
             {
+                if (!isRebuild) {
+                    // 変更セクタまでスキップする
+                    if (Position < Length && !s.IsDirty) {
+                        Position += s.GetLength();
+                        Skip = true;
+                        continue;
+                    }
+                    if (Skip) {
+                        fs.Position = Position;
+                        Skip = false;
+                    }
+                    Position += s.GetLength();
+                }
                 byte[] d = PlainFormat ? s.Data : s.GetBytes();
                 fs.Write(d, 0, d.Length);
             }
@@ -215,8 +256,7 @@ namespace Disk
             }
         }
 
-        void ReadHeader(FileStream fs)
-        {
+        void ReadHeader(FileStream fs) {
             byte[] header = new byte[0x2b0];
             fs.Read(header, 0, header.Length);
 
@@ -227,9 +267,12 @@ namespace Disk
             ImageType = (DiskType)Enum.ToObject(typeof(DiskType), t);
             ImageSize = (long)dc.GetLong(0x1c);
 
-            for (var i = 0; i < MaxTrack; i++)
-            {
-                TrackAddress[i] = (long)dc.GetLong(0x20 + (i * 4));
+            CurrentHeaderSize = 0;
+
+            for (var i = 0; i < MaxTrack; i++) {
+                var a = (long)dc.GetLong(0x20 + (i * 4));
+                TrackAddress[i] = a;
+                if (i == 0) CurrentHeaderSize = a;
             }
         }
 
@@ -286,7 +329,6 @@ namespace Disk
 
         public virtual void DeleteFiles(string Pattern) {
         }
-
 
     }
 }

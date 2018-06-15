@@ -67,6 +67,22 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
+            "name": "HuDisk append test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
+            "args": [
+                "test/TEST.D88",
+                "test/data/TEST.TXT",
+                "-a"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
             "name": "HuDisk delete test",
             "type": "coreclr",
             "request": "launch",

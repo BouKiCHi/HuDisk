@@ -52,7 +52,7 @@ namespace Disk
 
         private void FillFileSystem()
         {
-            var dc = new DataController(Sectors[AllocationTableStart].Data);
+            var dc = GetDataControllerForWrite(AllocationTableStart);
             dc.Fill(0);
             dc.SetByte(0, 0x01);
             dc.SetByte(1, 0x8f);
@@ -130,10 +130,18 @@ namespace Disk
 
         private void SetAllocateController() {
             AllocationController = new DataController[2];
-            AllocationController[0] = new DataController(Sectors[AllocationTableStart].Data);
+            AllocationController[0] = GetDataControllerForWrite(AllocationTableStart); 
             if (ImageType == DiskType.Disk2DD || ImageType ==DiskType.Disk2HD) {
-                AllocationController[1] = new DataController(Sectors[AllocationTableStart+1].Data);
+                AllocationController[1] = GetDataControllerForWrite(AllocationTableStart+1); 
             }
+        }
+
+        private DataController GetDataControllerForWrite(int Sector) {
+            Sectors[Sector].IsDirty = true;
+            return new DataController(Sectors[Sector].Data);
+        }
+        private DataController GetDataControllerForRead(int Sector) {
+            return new DataController(Sectors[Sector].Data);
         }
 
 
@@ -189,7 +197,7 @@ namespace Disk
                 var FillLength = end ? (next & 0x0f) + 1 : ClusterPerSector;
 
                 for(var i=0; i < FillLength; i++) {
-                    (new DataController(Sectors[(c*ClusterPerSector)+i].Data)).Fill(0);
+                    GetDataControllerForWrite((c*ClusterPerSector)+i).Fill(0);
                 }
                 // 0x8x = 最後のクラスタ
                 if (end) break;
@@ -244,7 +252,7 @@ namespace Disk
             List<HuFileEntry> FileList = new List<HuFileEntry>();
             for (int i = 0; i < ClusterPerSector; i++,Sector++)
             {
-                var dc = new DataController(Sectors[Sector].Data);
+                var dc = GetDataControllerForRead(Sector);
                 for (var j = 0; j < 8; j++)
                 {
                     int pos = (j * 0x20);
@@ -274,7 +282,7 @@ namespace Disk
 
             for (int i = 0; i < ClusterPerSector; i++,Sector++)
             {
-                var dc = new DataController(Sectors[Sector].Data);
+                var dc = GetDataControllerForRead(Sector);
                 for (var j = 0; j < EntriesInSector; j++)
                 {
                     int pos = (j * FileEntrySize);
@@ -290,18 +298,18 @@ namespace Disk
             return null;
         }
 
-        public HuFileEntry GetNewFileEntry(int sector)
+        public HuFileEntry GetNewFileEntry(int Sector)
         {
             for (int i = 0; i < ClusterPerSector; i++)
             {
-                var dc = new DataController(Sectors[sector + i].Data);
+                var dc = GetDataControllerForRead(Sector+i);
                 for (var j = 0; j < EntriesInSector; j++)
                 {
                     int pos = (j * FileEntrySize);
                     var mode = dc.GetByte(pos);
                     if (mode != EntryEnd && mode != EntryDelete) continue;
                     var fe = new HuFileEntry();
-                    fe.EntrySector = sector + i;
+                    fe.EntrySector = Sector + i;
                     fe.EntryPosition = pos;
                     return fe;
                 }
@@ -324,13 +332,13 @@ namespace Disk
         // ファイルエントリ書き出し
         public void WriteFileEntry(HuFileEntry fe) {
             FileEntryNormalize(fe);
-            var dc = new DataController(Sectors[fe.EntrySector].Data);
+            var dc = GetDataControllerForWrite(fe.EntrySector);
             WriteEntry(dc,fe,fe.EntryPosition ,fe.StartCluster,false);
         }
 
         // IPLエントリ書き出し
         public void WriteIplEntry(HuFileEntry fe) {
-            var dc = new DataController(Sectors[0].Data);
+            var dc = GetDataControllerForWrite(0);
             WriteEntry(dc,fe,0x00,fe.StartCluster * ClusterPerSector,true);
         }
 
@@ -462,7 +470,7 @@ namespace Disk
             }
 
             if (fe == null) {
-                Console.WriteLine("no entry space!");
+                Console.WriteLine("ERROR:No entry space!");
                 return false;
             }
 
@@ -484,7 +492,7 @@ namespace Disk
                 fc = GetNextFreeCluster();
             }
             if (fc < 0) {
-                Console.WriteLine("no free cluster!");
+                Console.WriteLine("ERROR:No free cluster!");
                 return false;
             }
             fe.StartCluster = fc;
@@ -505,15 +513,18 @@ namespace Disk
             return  "^" +  Regex.Escape(Pattern).Replace(@"\*", ".*" ).Replace( @"\?", "." ) + "$";
         }
 
-        private void PatternFiles(string Pattern,bool Extract,bool Delete) {
-            var r = new Regex(PatternToRegex(Pattern),RegexOptions.IgnoreCase);
+        private void PatternFiles(string Name,bool Extract,bool Delete) {
+            string EntryPattern = !string.IsNullOrEmpty(EntryName) ? EntryName : Name;
+
+            var r = new Regex(PatternToRegex(EntryPattern),RegexOptions.IgnoreCase);
             var Files = GetEntriesFromSector(EntrySector);
             foreach(var fe in Files) {
                 if (!r.IsMatch(fe.GetFilename())) continue;
                 fe.Description();
+                var OutputName = !string.IsNullOrEmpty(EntryName) ? Name : fe.GetFilename();
+
                 if (Extract) {
-                    string name =!string.IsNullOrEmpty(OutputName) ? OutputName : fe.GetFilename();
-                    ExtractFileFromCluster(name,fe.StartCluster,fe.Size);
+                    ExtractFileFromCluster(OutputName, fe.StartCluster, fe.Size);
                 }
                 if (Delete) {
                     fe.SetDelete();

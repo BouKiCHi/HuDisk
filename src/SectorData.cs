@@ -21,7 +21,7 @@ namespace Disk
         byte[] Header;
 
         byte FillValue;
-
+        public bool IsDirty;
         const int DefaultSectorSize = 256;
 
         public SectorData()
@@ -49,6 +49,7 @@ namespace Disk
             this.IsDelete = Delete;
             this.Status = Status;
             this.DataSize = DataSize;
+            this.IsDirty = true;
 
             dc.SetByte(0, Track);
             dc.SetByte(1, Side);

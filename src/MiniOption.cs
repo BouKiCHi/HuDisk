@@ -101,7 +101,7 @@ namespace Disk
 
     public bool Parse(string[] args) {
       for(ParseIndex=0; ParseIndex< args.Length; ParseIndex++) {
-        if (!args[ParseIndex].StartsWith("-")) {
+        if (args[ParseIndex] == "-" || !args[ParseIndex].StartsWith("-")) {
           Files.Add(args[ParseIndex]);
           continue;
         }

@@ -113,7 +113,7 @@ namespace Disk
                     break;
                 case RunModeType.Extract:
                     Console.WriteLine("Extract files:");
-                    Image.OutputName = EntryName;
+                    Image.EntryName = EntryName;
                     EditFiles(Options,Image,true,false);
                     break;
 

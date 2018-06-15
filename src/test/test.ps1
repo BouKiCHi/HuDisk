@@ -1,11 +1,11 @@
 
 Write-Output "--- HuDisk test ---"
 $testSrcFile = "TEST_SRC.TXT"
-$testFile = "TEST.TXT"
+$testTextFile = "TEST.TXT"
 $dataDirectory = "data"
 
 function hudisk($opt,$image,$file,$opts) {
-    Write-Output ("Option:" + $opt + " Image:" + $image + " File:" + $file)
+    Write-Output ("Option:" + $opt + " Image:" + $image + " File:" + $file + " Opts:" + $opts)
     ../../hudisk $opt $image $file $opts
 }
 
@@ -18,12 +18,25 @@ function getDataPath($name) {
     return Join-Path $dataDirectory $name
 }
 
-
 function testFormat($image) {
     Write-Output ("testFormat:" + $image)    
     hudisk --format $image ""
 }
 
+function compareData($dataA,$dataB) {
+    Write-Output  "Compare..."
+    $compare = Compare-Object $dataA $dataB
+    $result = "FAIL"
+    if ($compare -eq $NULL) {
+        $result = "OK"
+    }
+    Write-Output ("TEST RESULT:" + $result)
+}
+
+function extractData($image,$entryFile,$outputFile) {
+    $opts = "--name",$entryFile
+    hudisk "-x" $image $outputFile $opts
+}
 
 function testImage($image) {
     Write-Output ("testImage:" + $image)
@@ -31,21 +44,19 @@ function testImage($image) {
         Remove-Item -Force $image
     }
     $srcPath = getDataPath $testSrcFile
-    Copy-Item -Force $srcPath $testFile
+    Copy-Item -Force $srcPath $testTextFile
 
-    hudisk "-a" $image $testFile
-    Remove-Item $testFile
-    hudisk "-x" $image $testFile
+    hudisk "-a" $image $testTextFile
+    Remove-Item $testTextFile
+    hudisk "-x" $image $testTextFile
 
     $srcData = (Get-Content $srcPath)
-    $compare = Compare-Object $srcData (Get-Content $testFile)
+    $resultData =  (Get-Content $testTextFile)
+    compareData $srcData $resultData
 
-    $result = "FAIL"
-    if ($compare -eq $NULL) {
-        $result = "OK"
-    }
-    Write-Output ("TEST RESULT:" + $result)
+    # extractData $image $testTextFile "-"
 }
+
 
 
 function testOver64kImage($image) {
@@ -69,14 +80,8 @@ function testOver64kImage($image) {
      Write-Output  "Extract..."
     hudisk "-x" $image $test64kBin
 
-    Write-Output  "Compare..."
     $resultData = (Get-Content -Encoding Byte $test64kBin)
-    $compare = Compare-Object $tmp $resultData
-    $result = "FAIL"
-    if ($compare -eq $NULL) {
-        $result = "OK"
-    }
-    Write-Output ("TEST RESULT:" + $result)
+    compareData $tmp $resultData
 }
 
 function testBoundary($image,$x1s) {
@@ -113,16 +118,19 @@ function testBoundaryX1S($image) {
     hudisk "-l" $image
 }
 
-function fillImage($image) {
+function fillImage($image,$diskType=$null) {
     Write-Output ("fillImage:" + $image)
     if (Test-Path $image) {
         Remove-Item $image
     }
 
     $path = getDataPath "HELLO.txt"
-    0..81 | ForEach-Object {
+    0..130 | ForEach-Object {
         $name = "{0:000}.BIN" -F $_
         $opts = "--name",$name
+        if ($diskType -ne $null) {
+            $opts += "--type",$diskType
+        }
         hudisk "-a" $image $path $opts
     }
     hudisk "-l" $image 
@@ -146,9 +154,10 @@ Write-Output "Version Check"
 hudisk -h
 # testFormat "FORMAT.D88"
 # testImage "TEST.D88"
-# fillImage "TESTFILL.D88"
+# fillImage "TEST.D88" "2hd"
 # boundTest
 testOver64kImage "TEST.D88"
+# extractData "TEST.D88" "TEST64K.BIN" "OUTPUT.BIN"
 
 
 
