@@ -4,7 +4,7 @@ namespace Disk
 {
     class HuDisk : DiskManager {
     const string ProgramTitle = "HuDisk";
-    const string ProgramVersion = "1.12";
+    const string ProgramVersion = "1.13";
 
     string IplName = "";
     bool IplMode = false;
@@ -32,6 +32,7 @@ namespace Disk
         Console.WriteLine(" -g,--go  <address>    Set execute address");
         Console.WriteLine(" --x1s    Set x1save.exe compatible mode");
         Console.WriteLine(" --name <name>   Set entry name as <name>");
+        Console.WriteLine(" --path <path>   Change directory in image");
         Console.WriteLine();
         Console.WriteLine(" -h,-?,--help  This one");
     }
@@ -60,6 +61,7 @@ namespace Disk
         new MiniOption.DefineData((int)OptionType.Format,null,"format",false),
         new MiniOption.DefineData((int)OptionType.X1S,null,"x1s",false),
         new MiniOption.DefineData((int)OptionType.EntryName,null,"name",true),
+        new MiniOption.DefineData((int)OptionType.Path,null,"path",true),
 
         new MiniOption.DefineData((int)OptionType.Help,"h","help",false),
         new MiniOption.DefineData((int)OptionType.Help,"?",null,false)
@@ -110,6 +112,9 @@ namespace Disk
             break;
             case (int)OptionType.EntryName:
               EntryName = o.Value;
+            break;
+            case (int)OptionType.Path:
+              EntryPath = o.Value;
             break;
             case (int)OptionType.X1S:
               X1SMode=true;

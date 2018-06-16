@@ -7,6 +7,7 @@ namespace Disk
         RunModeType RunMode = RunModeType.List;
         public bool FormatImage = false;
         public string EntryName = "";
+        public string EntryPath = "";
 
 
         public enum RunModeType
@@ -32,7 +33,8 @@ namespace Disk
             X1S,
             EntryName,
             Delete,
-            ImageType
+            ImageType,
+            Path
         }
 
         public virtual void AppendInfoForAdd()
@@ -87,6 +89,11 @@ namespace Disk
 
         public void RunDiskEdit(MiniOption Options, DiskImage Image)
         {
+            if (!Image.ChangeDirectory(EntryPath)) {
+                Console.WriteLine("Directory open error!");
+                return;
+            }
+
             switch (RunMode)
             {
                 case RunModeType.Add:

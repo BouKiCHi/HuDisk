@@ -28,8 +28,9 @@ namespace Disk
 
         public void Description()
         {
+            string TypeText = (Mode & 0x80) != 0x00 ? "Dir " : "File";
             Console.WriteLine(
-                "File:{0,-16} Date:{1} Size:{2,-5} Load:{3,-5} Exec:{4,-5} Start:{5,5}",
+                TypeText + ":{0,-16} Date:{1} Size:{2,-5} Load:{3,-5} Exec:{4,-5} Start:{5,5}",
                 GetFilename(),
                 GetFileDate(),
                 Size,
@@ -82,6 +83,10 @@ namespace Disk
 
         public void SetDelete() {
             Mode = 0x00;
+        }
+
+        public bool IsDirectory() {
+            return ((Mode & 0x80) != 0x00);
         }
     }
 }

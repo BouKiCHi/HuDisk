@@ -50,7 +50,7 @@ namespace Disk
         {
         }
 
-        private void FillFileSystem()
+        private void FillAllocationTable()
         {
             var dc = GetDataControllerForWrite(AllocationTableStart);
             dc.Fill(0);
@@ -62,25 +62,23 @@ namespace Disk
                     for (var i = 0x50; i < 0x80; i++) dc.SetByte(i, 0x8f);
                 break;
                 case DiskType.Disk2DD:
-                    dc.SetBuffer(Sectors[AllocationTableStart + 1].Data);
+                    dc.SetBuffer(GetSectorDataForWrite(AllocationTableStart + 1));
                     dc.Fill(0);
                    for (var i = 0x20; i < 0x80; i++) dc.SetByte(i, 0x8f);
                 break;
                 case DiskType.Disk2HD:
                     dc.SetByte(2, 0x8f);
-                    dc.SetBuffer(Sectors[AllocationTableStart + 1].Data);
+                    dc.SetBuffer(GetSectorDataForWrite(AllocationTableStart + 1));
                     dc.Fill(0);
                     for (var i = 0x7a; i < 0x80; i++) dc.SetByte(i, 0x8f);
                 break;
             }
-            FormatEntry(dc);
+            FormatEntry(EntrySector);
         }
 
-        private void FormatEntry(DataController dc)
-        {
-            for (var i = 0; i < ClusterPerSector; i++)
-            {
-                dc.SetBuffer(Sectors[EntrySector + i].Data);
+        private void FormatEntry(int Sector) {
+            for (var i = 0; i < ClusterPerSector; i++) {
+                var dc = GetDataControllerForWrite(Sector + i);
                 dc.Fill(0xff);
             }
         }
@@ -103,7 +101,7 @@ namespace Disk
         public void FormatDisk() {
             Format();
             SetDiskParameter();
-            FillFileSystem();
+            FillAllocationTable();
             SetAllocateController();
         }
 
@@ -144,6 +142,10 @@ namespace Disk
             return new DataController(Sectors[Sector].Data);
         }
 
+        private byte[] GetSectorDataForWrite(int Sector) {
+            Sectors[Sector].IsDirty = true;
+            return Sectors[Sector].Data;
+        }
 
         public int GetNextFreeCluster(int Step=1) {
             for(var i=0; i<MaxCluster; i++) {
@@ -368,6 +370,56 @@ namespace Disk
             dc.SetByte(pos + 0x1f,(start>>7) & 0x7f);
         }
 
+        public override bool ChangeDirectory(string EntryPath)
+        {
+            if (EntryPath.Length == 0) return true;
+            Console.WriteLine("Path:" + EntryPath);
+            EntryPath = EntryPath.Replace('\\','/');
+            foreach(string Name in EntryPath.Split('/')) {
+                if (Name.Length == 0) continue;
+                if (!OpenDirectory(Name)) return false;
+            }
+            return true;
+        }
+
+        private bool OpenDirectory(string Name) {
+            var fe = GetFileEntry(Name,EntrySector);
+            if (fe != null) {
+                if (!fe.IsDirectory()) {
+                    Console.WriteLine("ERROR:" + Name + " is not directory!");
+                    return false;
+                }
+
+                // エントリセクタを変更
+                EntrySector = (fe.StartCluster*ClusterPerSector);
+                return true;
+            }
+
+            fe = GetNewFileEntry(EntrySector);
+            if (fe == null) {
+                Console.WriteLine("ERROR:No entry space!");
+                return false;
+            }
+            fe.SetTime(DateTime.Now);
+            fe.Mode = DirectoryFileMode;
+            fe.Name = Path.GetFileNameWithoutExtension(Name);
+            fe.Extension = Path.GetExtension(Name);
+            fe.Password = PasswordNoUse;
+
+            int fc = GetNextFreeCluster();
+            if (fc < 0) {
+                Console.WriteLine("ERROR:No free cluster!");
+                return false;
+            }
+
+            fe.StartCluster = fc;
+            WriteFileEntry(fe);
+            EntrySector = fc * ClusterPerSector;
+            FormatEntry(EntrySector);
+            SetClusterValue(fc,0x0f,true);
+            return true;
+        }
+
         public override void ListFiles(string Directory = "")
         {
             var Files = GetEntriesFromSector(EntrySector);
@@ -407,7 +459,7 @@ namespace Disk
                     if (end && (i + 1) == FillLength) {
                        Length = Size % SectorSize; 
                     }
-                    fs.Write(Sectors[(c*ClusterPerSector)+i].Data,0,Length);
+                    fs.Write(GetSectorDataForWrite((c*ClusterPerSector)+i),0,Length);
                 }
                 if (end) break;
                 c = next;
@@ -422,6 +474,8 @@ namespace Disk
             FileAccess.Read,
             FileShare.ReadWrite);
 
+            Console.WriteLine("StartCluster:" + StartCluster.ToString());
+
             int Size = Filesize;
             int c = StartCluster;
             while(true) {
@@ -432,7 +486,7 @@ namespace Disk
                     var Length = Size < SectorSize ? Size : SectorSize;
                     Sectors[s].Fill(0x00);
                     if (Size == 0) continue;
-                    fs.Read(Sectors[s].Data,0,Length);
+                    fs.Read(GetSectorDataForWrite(s),0,Length);
                     Size-=Length;
                     if (Length > 0) LastSector = sc;
                 }
@@ -474,7 +528,6 @@ namespace Disk
                 return false;
             }
 
-            if (fe == null) return false;
             fe.SetTime(FileDate);
             fe.Mode = BinaryFileMode;
             fe.Size = Size;

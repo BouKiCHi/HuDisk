@@ -44,12 +44,17 @@ IPLプログラムとして登録する場合はファイルサイズ分の連�
 
 * 展開時にファイル名を指定する
 ```
- hudisk image.d88 -x localfile.txt --name etnry.txt 
+ hudisk image.d88 -x localfile.txt --name entry.txt 
 ```
 
 * 展開時にファイルを標準出力する
 ```
  hudisk image.d88 --name entry.txt -x - 
+```
+
+* text.txtというファイルをディレクトリDATA/TEXTに追加する
+```
+ hudisk image.d88 --path DATA/TEXT -a text.txt 
 ```
 
 ## オプション
@@ -66,6 +71,7 @@ IPLプログラムとして登録する場合はファイルサイズ分の連�
 + -g,--go  {address} ... 実行アドレスの設定
 + --x1s ... x1save.exe互換モードに設定
 + --name {name} エントリ名をnameに設定
++ --path {path} ディレクトリ名をpathに設定
 
 + -h,-?,--help ... 表示
 
@@ -91,6 +97,10 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 + [HuBASICフォーマット](doc/HuBASIC_Format.md)
 
 ## 履歴
+* ver 1.13
+ファイル追加時のバグ修正。
+ディレクトリに仮対応。
+
 * ver 1.12
 ディスクイメージの部分書き換えに対応した。
 エントリ名の指定(--name)を仕様変更した。

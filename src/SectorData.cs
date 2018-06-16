@@ -113,8 +113,14 @@ namespace Disk
             Console.WriteLine(" DeleteFlag:{0} Status:{1} DataSize:{2}", IsDelete.ToString(), Status, DataSize);
         }
 
+        public byte[] GetDataForWrite() {
+            IsDirty = true;
+            return Data;
+        }
+
         public void Fill(int Value)
         {
+            IsDirty = true;
             (new DataController(Data)).Fill(Value);
         }
     }

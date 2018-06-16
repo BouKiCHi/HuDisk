@@ -38,16 +38,20 @@ function extractData($image,$entryFile,$outputFile) {
     hudisk "-x" $image $outputFile $opts
 }
 
+function deleteFile($file) {
+    if (Test-Path $file) {
+        Remove-Item -Force $file
+    }
+}
+
 function testImage($image) {
     Write-Output ("testImage:" + $image)
-    if (Test-Path $image) {
-        Remove-Item -Force $image
-    }
+    deleteFile $image
     $srcPath = getDataPath $testSrcFile
     Copy-Item -Force $srcPath $testTextFile
 
     hudisk "-a" $image $testTextFile
-    Remove-Item $testTextFile
+    deleteFile $testTextFile
     hudisk "-x" $image $testTextFile
 
     $srcData = (Get-Content $srcPath)
@@ -57,13 +61,35 @@ function testImage($image) {
     # extractData $image $testTextFile "-"
 }
 
+function testPathImage($image) {
+    Write-Output ("testPathImage:" + $image)
+    deleteFile $image
+    $srcPath = getDataPath $testSrcFile
+    $helloTxt = "HELLO.TXT"
+    $HelloTxtPath = getDataPath $helloTxt
+    Copy-Item -Force $srcPath $testTextFile
+
+    $opts = "--path","AB/CD"
+    $opts2 = "--path","EF/CD"
+
+    hudisk "-a" $image $testTextFile $opts
+    hudisk "-a" $image $HelloTxtPath $opts2
+    deleteFile $testTextFile
+    deleteFile $helloTxt
+    hudisk "-x" $image $testTextFile $opts
+    hudisk "-x" $image $helloTxt $opts2
+
+    compareData (Get-Content $srcPath) (Get-Content $testTextFile)
+    compareData (Get-Content $HelloTxtPath) (Get-Content $helloTxt)
+
+    # extractData $image $testTextFile "-"
+}
+
 
 
 function testOver64kImage($image) {
     Write-Output ("testOver64kImage:" + $image)
-    if (Test-Path $image) {
-        Remove-Item -Force $image
-    }
+    deleteFile $image
     $srcPath = getDataPath "256.BIN"
     $srcTextPath = getDataPath "TEST_SRC.TXT"
     $test64kBin = "TEST64K.BIN"
@@ -83,6 +109,8 @@ function testOver64kImage($image) {
     $resultData = (Get-Content -Encoding Byte $test64kBin)
     compareData $tmp $resultData
 }
+
+
 
 function testBoundary($image,$x1s) {
     Write-Output ("boundImage:" + $image)
@@ -156,7 +184,8 @@ hudisk -h
 # testImage "TEST.D88"
 # fillImage "TEST.D88" "2hd"
 # boundTest
-testOver64kImage "TEST.D88"
+# testOver64kImage "TEST.D88"
+testPathImage "TEST.D88"
 # extractData "TEST.D88" "TEST64K.BIN" "OUTPUT.BIN"
 
 

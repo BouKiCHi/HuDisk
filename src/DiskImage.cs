@@ -312,6 +312,11 @@ namespace Disk
             }
         }
 
+        public virtual bool ChangeDirectory(string Path) {
+            return false;
+        }
+
+
         public virtual bool AddFile(string FilePath,string EntryName) {
             return false;
         }

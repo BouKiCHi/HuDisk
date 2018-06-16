@@ -67,6 +67,37 @@
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
+            "name": "HuDisk extract path test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
+            "args": [
+                "test/TEST.D88",
+                "-x", "-",
+                "--name","HELLO.TXT",
+                "--path","EF/CD"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+
+        {
+            "name": "HuDisk append path test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/bin/Debug/netcoreapp2.0/HuDisk.dll",
+            "cwd": "${workspaceFolder}/src",
+            "args": [
+                "test/TEST.D88",
+                "-a", "test/data/TEST.TXT",
+                "--path","EF/CD"
+            ],
+        },
+        {
             "name": "HuDisk append test",
             "type": "coreclr",
             "request": "launch",
