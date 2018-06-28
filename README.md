@@ -97,6 +97,10 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 + [HuBASICフォーマット](doc/HuBASIC_Format.md)
 
 ## 履歴
+* ver 1.14
+ファイルサイズが大きい場合の処理の修正。
+2HD時のクラスタのセクタ数を26セクタに変更。
+
 * ver 1.13
 ファイル追加時のバグ修正。
 ディレクトリに仮対応。

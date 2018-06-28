@@ -14,13 +14,14 @@ namespace Disk
         const int AllocationTable2HDSector = 28;
         const int EntrySector2HD = 32;
         const int MaxCluster2HD = 160;
+        const int ClusterPerSector2HD = 26;
 
         const int AllocationTable2DDSector = 14;
         const int EntrySector2DD = 16;
         const int MaxCluster2DD = 160;
 
 
-        const int ClusterPerSector = 16;
+        const int ClusterPerSector2D = 16;
         const int SectorSize = 256;
 
         const int BinaryFileMode = 0x01;
@@ -35,6 +36,7 @@ namespace Disk
         public int AllocationTableStart;
         public int EntrySector = 0;
         public int MaxCluster = 0;
+        public int ClusterPerSector = 0;
 
 
         DataController[] AllocationController;
@@ -111,18 +113,20 @@ namespace Disk
                     AllocationTableStart = AllocationTable2DSector;
                     EntrySector = EntrySector2D;
                     MaxCluster = MaxCluster2D;
+                    ClusterPerSector = ClusterPerSector2D;
                 break;
                 case DiskType.Disk2HD:
                     AllocationTableStart = AllocationTable2HDSector;
                     EntrySector = EntrySector2HD;
                     MaxCluster = MaxCluster2HD;
+                    ClusterPerSector = ClusterPerSector2HD;
                 break;
                 case DiskType.Disk2DD:
                     AllocationTableStart = AllocationTable2DDSector;
                     EntrySector = EntrySector2DD;
                     MaxCluster = MaxCluster2DD;
+                    ClusterPerSector = ClusterPerSector2D;
                 break;
-
             }
         }
 
@@ -499,6 +503,11 @@ namespace Disk
                     break;
                 }
                 var next = GetNextFreeCluster(2);
+                if (next < 0) {
+                    Console.WriteLine("Too big filesize!: LastClaster=" + c.ToString());
+                    SetClusterValue(c,LastSector,true);
+                    break;
+                }
                 SetClusterValue(c,next);
                 c = next;
             }
