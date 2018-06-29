@@ -8,21 +8,18 @@ namespace Disk
     class HuBasicDiskImage : DiskImage
     {
         const int AllocationTable2DSector = 14;
-        const int EntrySector2D = 16;
-        const int MaxCluster2D = 80;
-
-        const int AllocationTable2HDSector = 28;
-        const int EntrySector2HD = 32;
-        const int MaxCluster2HD = 160;
-        const int ClusterPerSector2HD = 26;
-
         const int AllocationTable2DDSector = 14;
+        const int AllocationTable2HDSector = 28;
+        const int EntrySector2D = 16;
         const int EntrySector2DD = 16;
+        const int EntrySector2HD = 32;
+        const int MaxCluster2D = 80;
         const int MaxCluster2DD = 160;
-
-
+        const int MaxCluster2HD = 250;
         const int ClusterPerSector2D = 16;
-        const int SectorSize = 256;
+        const int ClusterPerSector2HD = 16;
+
+        const int SectorBytes = 256;
 
         const int BinaryFileMode = 0x01;
         const int DirectoryFileMode = 0x80;
@@ -433,7 +430,8 @@ namespace Disk
         }
 
         public override void DisplayFreeSpace() {
-            Console.WriteLine("Free:{0} Cluster(s)",GetFreeClusters());
+            var fc = GetFreeClusters();
+            Console.WriteLine("Free:{0} byte(s) / {1} cluster(s)",fc * ClusterPerSector * SectorBytes , fc);
         }
 
         public void ExtractFileFromCluster(string OutputFile,int StartCluster,int Size) {
@@ -459,9 +457,9 @@ namespace Disk
                 var FillLength = end ? (next & 0x0f) + 1 : ClusterPerSector;
 
                 for(var i=0; i < FillLength; i++) {
-                    var Length = SectorSize;
+                    var Length = SectorBytes;
                     if (end && (i + 1) == FillLength) {
-                       Length = Size % SectorSize; 
+                       Length = Size % SectorBytes; 
                     }
                     fs.Write(GetSectorDataForWrite((c*ClusterPerSector)+i),0,Length);
                 }
@@ -487,7 +485,7 @@ namespace Disk
                 var s = (c*ClusterPerSector);
                 var LastSector = 0;
                 for(sc=0; sc < ClusterPerSector; sc++,s++) {
-                    var Length = Size < SectorSize ? Size : SectorSize;
+                    var Length = Size < SectorBytes ? Size : SectorBytes;
                     Sectors[s].Fill(0x00);
                     if (Size == 0) continue;
                     fs.Read(GetSectorDataForWrite(s),0,Length);
@@ -548,7 +546,7 @@ namespace Disk
 
             int fc = -1;
             if (IplMode) {
-                int Cluster = (fe.Size / (ClusterPerSector * SectorSize)) + 1;
+                int Cluster = (fe.Size / (ClusterPerSector * SectorBytes)) + 1;
                 fc = GetNextFreeSerialCluster(Cluster);
             } else {
                 fc = GetNextFreeCluster();
