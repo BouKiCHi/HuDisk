@@ -1,16 +1,18 @@
 CSC = C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe
+
 SRCS = Program.cs 
 SRCS += HuDisk.cs HuBasicDiskImage.cs DataController.cs MiniOption.cs 
 SRCS += DiskManager.cs DiskImage.cs HuFileEntry.cs SectorData.cs
+SRCS += OptionType.cs
+
+SRC_DIR = HuDisk\src
 
 TARGET = hudisk.exe
-TARGET_PATH = ../$(TARGET)
 
-all : $(TARGET_PATH)
+all : $(TARGET)
 
-$(TARGET_PATH) : $(SRCS)
-	$(CSC) /define:RELEASE /out:$(TARGET) $^
-	mv $(TARGET) $(TARGET_PATH)
+$(TARGET) : $(addprefix $(SRC_DIR)\,$(SRCS))
+	$(CSC) /out:$(TARGET) $^
 
 clean : 
-	rm -f $(TARGET_PATH)
+	rm -f $(TARGET)

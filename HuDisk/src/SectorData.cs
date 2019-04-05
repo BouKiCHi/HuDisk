@@ -1,10 +1,8 @@
-using System;
+﻿using System;
 using System.IO;
 
-namespace Disk
-{
-    class SectorData
-    {
+namespace Disk {
+    public class SectorData {
         public int Track;
         public int Side;
         public int Sector;
@@ -24,19 +22,15 @@ namespace Disk
         public bool IsDirty;
         const int DefaultSectorSize = 256;
 
-        public SectorData()
-        {
+        public SectorData() {
             this.FillValue = 0xe5;
         }
 
-        public SectorData(byte FillValue)
-        {
+        public SectorData(byte FillValue) {
             this.FillValue = FillValue;
         }
 
-        public void Make(int Track, int Side, int Sector, int NumOfSector, int SectorsInTrack, int Density, bool Delete, int Status, int DataSize)
-        {
-
+        public void Make(int Track, int Side, int Sector, int NumOfSector, int SectorsInTrack, int Density, bool Delete, int Status, int DataSize) {
             Header = new byte[0x10];
             var dc = new DataController(Header);
 
@@ -66,22 +60,18 @@ namespace Disk
             dc.Fill(FillValue);
         }
 
-        public byte[] GetBytes()
-        {
+        public byte[] GetBytes() {
             byte[] result = new byte[Header.Length + Data.Length];
             Header.CopyTo(result, 0);
             Data.CopyTo(result, Header.Length);
             return result;
         }
 
-        public int GetLength()
-        {
+        public int GetLength() {
             return Header.Length + Data.Length;
         }
 
-
-        public bool Read(bool IsPlain,FileStream fs)
-        {
+        public bool Read(bool IsPlain, FileStream fs) {
             DataSize = DefaultSectorSize;
             if (!IsPlain && !ReadSectorHeader(fs)) return false;
             Data = new byte[DataSize];
@@ -89,7 +79,6 @@ namespace Disk
         }
 
         public bool ReadSectorHeader(FileStream fs) {
-
             Header = new byte[0x10];
             int s = fs.Read(Header, 0, 0x10);
             if (s < 0x10) return false;
@@ -106,8 +95,7 @@ namespace Disk
             return true;
         }
 
-        public void Description()
-        {
+        public void Description() {
             Console.Write("C:{0} H:{1} R:{2} N:{3}", Track, Side, Sector, NumOfSector);
             Console.Write(" SectorsInTrack:{0} Density:{1}", SectorsInTrack, Density);
             Console.WriteLine(" DeleteFlag:{0} Status:{1} DataSize:{2}", IsDelete.ToString(), Status, DataSize);
@@ -118,8 +106,7 @@ namespace Disk
             return Data;
         }
 
-        public void Fill(int Value)
-        {
+        public void Fill(int Value) {
             IsDirty = true;
             (new DataController(Data)).Fill(Value);
         }

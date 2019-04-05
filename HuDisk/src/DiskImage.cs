@@ -1,14 +1,11 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Disk
-{
-    class DiskImage
-    {
-        public enum DiskType
-        {
+namespace Disk {
+    public class DiskImage {
+        public enum DiskType {
             Disk2D = 0x00,
             Disk2DD = 0x10,
             Disk2HD = 0x20
@@ -50,19 +47,18 @@ namespace Disk
 
         public string EntryName;
 
-        public DiskImage(string ImageFilePath)
-        {
+        public DiskImage(string ImageFilePath) {
             this.ImageFile = ImageFilePath;
             Verbose = false;
             DiskName = "";
             IsWriteProtect = false;
             ImageType = DiskType.Disk2D;
-#if RELEASE
-            // Console.WriteLine("Encoding:932");
-            TextEncoding = System.Text.Encoding.GetEncoding(932);
-#else
+#if USE_ASCII
             // Console.WriteLine("Encoding:ASCII");
             TextEncoding = System.Text.Encoding.ASCII;
+#else
+            // Console.WriteLine("Encoding:932");
+            TextEncoding = System.Text.Encoding.GetEncoding(932);
 #endif
             var ext = Path.GetExtension(ImageFilePath);
             if (ext.StartsWith(".")) ext = ext.Substring(1);
@@ -70,21 +66,18 @@ namespace Disk
             CheckExtension(ext);
         }
 
-        private void CheckExtension(string ext)
-        {
+        private void CheckExtension(string ext) {
             if (ext != "2D" && ext != "2HD") return;
             PlainFormat = true;
             ImageType = ext == "2D" ? DiskType.Disk2D : DiskType.Disk2HD;
         }
 
-        public virtual void Format2D()
-        {
+        public virtual void Format2D() {
             ImageType = DiskType.Disk2D;
             TrackFormat(TrackMax2D, TrackPerSector2D);
         }
 
-        private void TrackFormat(int TrackMax, int TrackPerSector)
-        {
+        private void TrackFormat(int TrackMax, int TrackPerSector) {
             var Position = PlainFormat ? 0x0 : DefaultHeaderSize;
             for (var t = 0; t < TrackMax; t++) {
                 TrackAddress[t] = Position;
@@ -97,36 +90,33 @@ namespace Disk
             }
         }
 
-        public virtual void Format2DD()
-        {
+        public virtual void Format2DD() {
             ImageType = DiskType.Disk2DD;
             TrackFormat(TrackMax2DD, TrackPerSector2DD);
         }
 
-        public virtual void Format2HD()
-        {
+        public virtual void Format2HD() {
             ImageType = DiskType.Disk2HD;
             TrackFormat(TrackMax2HD, TrackPerSector2HD);
         }
 
         public void Format() {
             SetDiskSetting();
-            switch(ImageType) {
+            switch (ImageType) {
                 case DiskType.Disk2D:
                     Format2D();
-                break;
+                    break;
                 case DiskType.Disk2HD:
                     Format2HD();
-                break;
+                    break;
                 case DiskType.Disk2DD:
                     Format2DD();
-                break;
+                    break;
             }
             CurrentHeaderSize = 0;
         }
 
-        public void Write()
-        {
+        public void Write() {
             var fs = new FileStream(ImageFile,
             FileMode.OpenOrCreate,
             FileAccess.Write,
@@ -137,7 +127,7 @@ namespace Disk
             if (!PlainFormat) {
                 if (RebuildImage) WriteHeader(fs);
             }
-            WriteSectors(fs,RebuildImage);
+            WriteSectors(fs, RebuildImage);
             fs.Close();
         }
 
@@ -158,26 +148,24 @@ namespace Disk
             return false;
         }
 
-        private void WriteHeader(FileStream fs)
-        {
+        private void WriteHeader(FileStream fs) {
             byte[] header = new byte[DefaultHeaderSize];
             ImageSize = header.Length;
             int t = 0;
             foreach (SectorData s in Sectors) {
-                if (s.Sector == 0x01) TrackAddress[t++] = ImageSize; 
+                if (s.Sector == 0x01) TrackAddress[t++] = ImageSize;
                 ImageSize += s.GetLength();
             }
 
             var dc = new DataController(header);
-            dc.SetCopy(0, TextEncoding.GetBytes(this.DiskName),0x10);
+            dc.SetCopy(0, TextEncoding.GetBytes(this.DiskName), 0x10);
             dc.SetByte(0x1a, IsWriteProtect ? 0x10 : 0x00);
             dc.SetByte(0x1b, (int)ImageType);
             dc.SetLong(0x1c, (ulong)ImageSize);
 
             // トラック分のアドレスを出力する
             long a = 0;
-            for (var i = 0; i < MaxTrack; i++)
-            {
+            for (var i = 0; i < MaxTrack; i++) {
                 a = TrackAddress[i];
                 if (a == 0x00) break;
                 dc.SetLong(0x20 + (i * 4), (ulong)a);
@@ -185,14 +173,12 @@ namespace Disk
             fs.Write(header, 0, header.Length);
         }
 
-        private void WriteSectors(FileStream fs,bool isRebuild)
-        {
+        private void WriteSectors(FileStream fs, bool isRebuild) {
             var Length = fs.Length;
             var Position = TrackAddress[0];
             var Skip = true;
 
-            foreach (SectorData s in Sectors)
-            {
+            foreach (SectorData s in Sectors) {
                 if (!isRebuild) {
                     // 変更セクタまでスキップする
                     if (Position < Length && !s.IsDirty) {
@@ -211,8 +197,7 @@ namespace Disk
             }
         }
 
-        public bool Read()
-        {
+        public bool Read() {
             if (!File.Exists(ImageFile)) return false;
             var fs = new FileStream(ImageFile,
             FileMode.Open,
@@ -226,9 +211,8 @@ namespace Disk
             return true;
         }
 
-        private void SetDiskSetting()
-        {
-            switch(ImageType) {
+        private void SetDiskSetting() {
+            switch (ImageType) {
                 case DiskType.Disk2D:
                     TrackPerSector = TrackPerSector2D;
                     break;
@@ -237,14 +221,12 @@ namespace Disk
                     break;
                 case DiskType.Disk2HD:
                     TrackPerSector = TrackPerSector2HD;
-                break;
+                    break;
             }
         }
 
-        string GetDiskTypeName()
-        {
-            switch (ImageType)
-            {
+        string GetDiskTypeName() {
+            switch (ImageType) {
                 case DiskType.Disk2D:
                     return "2D";
                 case DiskType.Disk2DD:
@@ -276,32 +258,28 @@ namespace Disk
             }
         }
 
-        public void DiskDescription()
-        {
+        public void DiskDescription() {
             Console.WriteLine("DiskName:{0}", this.DiskName);
             Console.Write("IsWriteProtect:{0}", IsWriteProtect ? "Yes" : "No");
             Console.Write(" DiskType:{0}", GetDiskTypeName());
             Console.WriteLine(" ImageSize:{0}", ImageSize);
         }
 
-        void ReadSectors(FileStream fs)
-        {
+        void ReadSectors(FileStream fs) {
             int Track = 0;
             int SectorCount = 1;
             var Address = PlainFormat ? 0x00 : TrackAddress[Track];
             if (!PlainFormat && Address == 0x00) return;
             fs.Seek(Address, SeekOrigin.Begin);
- 
-            while (true)
-            {
+
+            while (true) {
                 Address = fs.Position;
                 var Sector = new SectorData();
                 if (!Sector.Read(PlainFormat, fs)) break;
                 if (!PlainFormat) {
                     SectorCount = Sector.Sector;
                 }
-                if (SectorCount == 0x01)
-                {
+                if (SectorCount == 0x01) {
                     if (PlainFormat) TrackAddress[Track] = Address;
                     if (Verbose) Console.WriteLine("Track:{0} Pos:{1:X} Address:{2:X}", Track, Address, TrackAddress[Track]);
                     Track++;
@@ -317,12 +295,11 @@ namespace Disk
         }
 
 
-        public virtual bool AddFile(string FilePath,string EntryName) {
+        public virtual bool AddFile(string FilePath, string EntryName) {
             return false;
         }
 
-        public virtual void ListFiles(string Directory = "")
-        {
+        public virtual void ListFiles(string Directory = "") {
         }
 
         public virtual void DisplayFreeSpace() {
