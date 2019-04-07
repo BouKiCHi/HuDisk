@@ -18,6 +18,14 @@ namespace Disk.Tests {
             return string.Join("",Result.Select(x => x.ToString("x2")));
         }
 
+        public static string ComputeHashSha1(string Filename) {
+            var Data = File.ReadAllBytes(Filename);
+            SHA1CryptoServiceProvider csp = new SHA1CryptoServiceProvider();
+            var Result = csp.ComputeHash(Data);
+            return string.Join("", Result.Select(x => x.ToString("x2")));
+        }
+
+
         public static void RunPowerShell(string Option) {
             Process cmd = new Process();
             cmd.StartInfo.FileName = "PowerShell.exe";
