@@ -103,8 +103,8 @@ hudisk image.d88 file.bin --read 1234 --go 1234
 
 
 ## 技術情報
-+ [ディスクフォーマット](doc/DISK.md)
-+ [HuBASICフォーマット](doc/HuBASIC_Format.md)
++ [ディスクフォーマット](docs/DISK.md)
++ [HuBASICフォーマット](docs/HuBASIC_Format.md)
 
 ## 履歴
 + [CHANGELOG.md](CHANGELOG.md)
