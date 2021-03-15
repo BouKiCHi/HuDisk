@@ -16,6 +16,44 @@ namespace Disk.Tests {
             Assert.IsFalse(HuDisk.Run(new string[] { }));
         }
 
+
+        [TestMethod()]
+        public void ExtractFileTest() {
+            int[] SizeData = new[] {
+                255, 256, 257, 511, 512, 513, 555, 767, 768, 769, 2048, 4096,
+            };
+
+            foreach(var s in SizeData) {
+                CheckFilesize(s);
+            }
+        }
+
+        private void CheckFilesize(int FileSize) {
+            var ImageFilename = "sizetest.2d";
+            var HuDisk = new HuDisk();
+            var Filename = $"{FileSize}.bin";
+            var SourceFile = GetFilepath(Filename);
+            DeleteFile(ImageFilename);
+            DeleteFile(Filename);
+            Assert.IsTrue(HuDisk.Run(new string[] { ImageFilename, "-a", SourceFile }));
+            Assert.IsTrue(HuDisk.Run(new string[] { ImageFilename, "-x", Filename }));
+            var fi = new FileInfo(Filename);
+            Assert.AreEqual(FileSize, fi.Length);
+            CheckFileEqual(SourceFile, Filename);
+        }
+
+        private void CheckFileEqual(string sourceFile, string filename) {
+            var s1 = File.ReadAllBytes(sourceFile);
+            var s2 = File.ReadAllBytes(filename);
+            Assert.AreEqual(s1.Length, s2.Length);
+            Assert.IsTrue(s1.SequenceEqual(s2));
+        }
+
+        string GetFilepath(string Filename) {
+            return "..\\..\\data\\" + Filename;
+        }
+
+
         [TestMethod()]
         public void Format2DTest() {
             FormatTest("2d.d88", "e9c50ac3da824df3ac04b05bb76a6180266cae2f", "2d");
@@ -34,7 +72,7 @@ namespace Disk.Tests {
         private void FormatTest(string ImageFilename, string ExpectedHash, string FormatType) {
             var HuDisk = new HuDisk();
 
-            if (File.Exists(ImageFilename)) File.Delete(ImageFilename);
+            DeleteFile(ImageFilename);
 
             HuDisk.Run(new string[] { ImageFilename, "--format", "--type", FormatType });
             var ImageHash = TestHelper.ComputeHashSha1(ImageFilename);
@@ -42,5 +80,8 @@ namespace Disk.Tests {
             Assert.AreEqual(ExpectedHash, ImageHash);
         }
 
+        private static void DeleteFile(string ImageFilename) {
+            if (File.Exists(ImageFilename)) File.Delete(ImageFilename);
+        }
     }
 }

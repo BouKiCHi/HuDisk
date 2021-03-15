@@ -433,6 +433,9 @@ namespace Disk {
             }
 
             int c = StartCluster;
+            int LeftSize = Size;
+
+
             while (true) {
                 var end = IsEndCluster(c);
                 var next = ClusterValue(c);
@@ -440,14 +443,14 @@ namespace Disk {
                     Console.WriteLine("WARNING: Wrong cluster chain!!");
                     break;
                 }
-                var FillLength = end ? (next & 0x0f) + 1 : ClusterPerSector;
+                // セクタ数
+                var Sector = end ? (next & 0x0f) + 1 : ClusterPerSector;
 
-                for (var i = 0; i < FillLength; i++) {
-                    var Length = SectorBytes;
-                    if (end && (i + 1) == FillLength) {
-                        Length = Size % SectorBytes;
-                    }
-                    fs.Write(GetSectorDataForWrite((c * ClusterPerSector) + i), 0, Length);
+                for (var i = 0; i < Sector; i++) {
+                    // セクタサイズか残りのバイト数を書き出す
+                    var CurrentSectorBytes = LeftSize > SectorBytes ? SectorBytes : LeftSize;
+                    LeftSize -= CurrentSectorBytes;
+                    fs.Write(GetSectorDataForWrite((c * ClusterPerSector) + i), 0, CurrentSectorBytes);
                 }
                 if (end) break;
                 c = next;

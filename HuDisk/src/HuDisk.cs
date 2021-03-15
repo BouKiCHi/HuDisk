@@ -4,7 +4,7 @@ namespace Disk {
     public class HuDisk : DiskManager {
 
         private string ProgramTitle = "HuDisk";
-        private string ProgramVersion = "1.16";
+        private string ProgramVersion = "1.17";
 
         string IplName = "";
         bool IplMode = false;
