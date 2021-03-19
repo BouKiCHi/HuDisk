@@ -66,6 +66,9 @@ namespace Disk {
             for (var i = 0; i < Buffer.Length; i++) Buffer[i] = (byte)value;
         }
 
+        internal void SetByte(int v, object imageTypeByte) {
+            throw new NotImplementedException();
+        }
     }
 
 }

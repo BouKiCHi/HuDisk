@@ -5,18 +5,65 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Disk {
-    class HuBasicDiskImage : DiskImage {
-        const int AllocationTable2DSector = 14;
-        const int AllocationTable2DDSector = 14;
-        const int AllocationTable2HDSector = 28;
-        const int EntrySector2D = 16;
-        const int EntrySector2DD = 16;
-        const int EntrySector2HD = 32;
-        const int MaxCluster2D = 80;
-        const int MaxCluster2DD = 160;
-        const int MaxCluster2HD = 250;
-        const int ClusterPerSector2D = 16;
-        const int ClusterPerSector2HD = 16;
+    class HuBasicDiskImage {
+
+
+        public void EditDisk() {
+            if (!ChangeDirectory(Context.EntryPath)) {
+                Console.WriteLine("Directory open error!");
+                return;
+            }
+
+            var Files = Context.Files;
+            var EntryName = Context.EntryName;
+
+            switch (Context.RunMode) {
+                case RunModeTypeEnum.Add:
+                    Console.WriteLine("Add files:");
+
+                    for (var i = 1; i < Files.Count; i++) {
+                        string s = Files[i];
+                        AddFile(s, EntryName);
+                    }
+                    if (Files.Count == 1) {
+                        Console.WriteLine("No files to add.");
+                    }
+
+                    DisplayFreeSpace();
+                    DiskImage.WriteDisk();
+
+                    break;
+                case RunModeTypeEnum.List:
+                    Console.WriteLine("List files:");
+                    ListFiles();
+                    DisplayFreeSpace();
+                    break;
+                case RunModeTypeEnum.Extract:
+                    Console.WriteLine("Extract files:");
+                    EditFiles(true, false);
+                    break;
+
+                case RunModeTypeEnum.Delete:
+                    Console.WriteLine("Delete files:");
+                    EditFiles(false, true);
+                    DiskImage.WriteDisk();
+                    break;
+            }
+        }
+
+        private void EditFiles(bool Extract, bool Delete) {
+            var Files = Context.Files;
+            if (Files.Count == 1) {
+                if (Delete) DeleteFiles("*");
+                return;
+            }
+            for (var i = 1; i < Files.Count; i++) {
+                string s = Files[i];
+                if (Extract) ExtractFiles(s);
+                if (Delete) DeleteFiles(s);
+            }
+        }
+
 
         const int SectorBytes = 256;
 
@@ -29,40 +76,56 @@ namespace Disk {
         const int PasswordNoUse = 0x20;
         const int FileEntrySize = 0x20;
         private const int EntriesInSector = 8;
-        public int AllocationTableStart;
-        public int EntrySector = 0;
-        public int MaxCluster = 0;
-        public int ClusterPerSector = 0;
+
+        public DiskParameter DiskParameter { get; private set; }
+        public int EntrySector;
+        public int AllocationTableStart => DiskParameter.AllocationTableStart;
+        public int MaxCluster => DiskParameter.MaxCluster;
+        public int ClusterPerSector => DiskParameter.ClusterPerSector;
 
         DataController[] AllocationController;
 
-        public string IplName;
-        public bool IplMode;
-        public int ExecuteAddress;
-        public int LoadAddress;
+        public string IplName => Context.IplName;
+        public int ExecuteAddress => Context.ExecuteAddress;
+        public int LoadAddress => Context.LoadAddress;
 
-        public bool X1SMode;
+        public bool IplMode { get => Context.IplMode; set => Context.IplMode = value; }
 
-        public HuBasicDiskImage(string Path) : base(Path) { }
+        public bool X1SMode => Context.X1SMode;
+
+        private readonly Context Context;
+
+        public Encoding TextEncoding { get; }
+
+        DiskImage DiskImage;
+
+
+        public HuBasicDiskImage(Context context) {
+            this.Context = context;
+            TextEncoding = Context.TextEncoding;
+            DiskImage = new DiskImage(Context);
+        }
 
         private void FillAllocationTable() {
-            var dc = GetDataControllerForWrite(AllocationTableStart);
+            var dc = DiskImage.GetDataControllerForWrite(AllocationTableStart);
             dc.Fill(0);
             dc.SetByte(0, 0x01);
             dc.SetByte(1, 0x8f);
 
+            var ImageType = Context.DiskType.ImageType;
+
             switch (ImageType) {
-                case DiskType.Disk2D:
+                case DiskTypeEnum.Disk2D:
                     for (var i = 0x50; i < 0x80; i++) dc.SetByte(i, 0x8f);
                     break;
-                case DiskType.Disk2DD:
-                    dc.SetBuffer(GetSectorDataForWrite(AllocationTableStart + 1));
+                case DiskTypeEnum.Disk2DD:
+                    dc.SetBuffer(DiskImage.GetSectorDataForWrite(AllocationTableStart + 1));
                     dc.Fill(0);
                     for (var i = 0x20; i < 0x80; i++) dc.SetByte(i, 0x8f);
                     break;
-                case DiskType.Disk2HD:
+                case DiskTypeEnum.Disk2HD:
                     dc.SetByte(2, 0x8f);
-                    dc.SetBuffer(GetSectorDataForWrite(AllocationTableStart + 1));
+                    dc.SetBuffer(DiskImage.GetSectorDataForWrite(AllocationTableStart + 1));
                     dc.Fill(0);
                     for (var i = 0x7a; i < 0x80; i++) dc.SetByte(i, 0x8f);
                     break;
@@ -72,75 +135,43 @@ namespace Disk {
 
         private void FormatEntry(int Sector) {
             for (var i = 0; i < ClusterPerSector; i++) {
-                var dc = GetDataControllerForWrite(Sector + i);
+                var dc = DiskImage.GetDataControllerForWrite(Sector + i);
                 dc.Fill(0xff);
             }
         }
 
         public void ReadOrFormat() {
-            if (!Read()) {
+            if (!DiskImage.Read()) {
                 FormatDisk();
                 return;
             }
+
             SetDiskParameter();
             SetAllocateController();
         }
 
-        public bool CheckFormat() {
-            if (ImageType != DiskType.Disk2D) return false;
-            return true;
+        private void SetDiskParameter() {
+            DiskParameter = Context.DiskType.DiskParameter;
+            EntrySector = Context.DiskType.DiskParameter.EntrySector;
         }
 
         public void FormatDisk() {
-            Format();
+            DiskImage.Format();
             SetDiskParameter();
             FillAllocationTable();
             SetAllocateController();
         }
 
-        private void SetDiskParameter() {
-            switch (ImageType) {
-                case DiskType.Disk2D:
-                    AllocationTableStart = AllocationTable2DSector;
-                    EntrySector = EntrySector2D;
-                    MaxCluster = MaxCluster2D;
-                    ClusterPerSector = ClusterPerSector2D;
-                    break;
-                case DiskType.Disk2HD:
-                    AllocationTableStart = AllocationTable2HDSector;
-                    EntrySector = EntrySector2HD;
-                    MaxCluster = MaxCluster2HD;
-                    ClusterPerSector = ClusterPerSector2HD;
-                    break;
-                case DiskType.Disk2DD:
-                    AllocationTableStart = AllocationTable2DDSector;
-                    EntrySector = EntrySector2DD;
-                    MaxCluster = MaxCluster2DD;
-                    ClusterPerSector = ClusterPerSector2D;
-                    break;
-            }
-        }
 
         private void SetAllocateController() {
             AllocationController = new DataController[2];
-            AllocationController[0] = GetDataControllerForWrite(AllocationTableStart);
-            if (ImageType == DiskType.Disk2DD || ImageType == DiskType.Disk2HD) {
-                AllocationController[1] = GetDataControllerForWrite(AllocationTableStart + 1);
+            AllocationController[0] = DiskImage.GetDataControllerForWrite(AllocationTableStart);
+            var IsNot2D = Context.DiskType.IsNot2D;
+            if (IsNot2D) {
+                AllocationController[1] = DiskImage.GetDataControllerForWrite(AllocationTableStart + 1);
             }
         }
 
-        private DataController GetDataControllerForWrite(int Sector) {
-            Sectors[Sector].IsDirty = true;
-            return new DataController(Sectors[Sector].Data);
-        }
-        private DataController GetDataControllerForRead(int Sector) {
-            return new DataController(Sectors[Sector].Data);
-        }
-
-        private byte[] GetSectorDataForWrite(int Sector) {
-            Sectors[Sector].IsDirty = true;
-            return Sectors[Sector].Data;
-        }
 
         public int GetNextFreeCluster(int Step = 1) {
             for (var i = 0; i < MaxCluster; i++) {
@@ -174,15 +205,6 @@ namespace Disk {
             return -1;
         }
 
-        public int GetFreeClusters() {
-            var Result = 0;
-            for (var i = 0; i < MaxCluster; i++) {
-                var end = IsEndCluster(i);
-                var ptr = ClusterValue(i);
-                if (!end && ptr == 0x00) Result++;
-            }
-            return Result;
-        }
 
         public void RemoveAllocation(int StartCluster) {
             int c = StartCluster;
@@ -195,7 +217,7 @@ namespace Disk {
                 var FillLength = end ? (next & 0x0f) + 1 : ClusterPerSector;
 
                 for (var i = 0; i < FillLength; i++) {
-                    GetDataControllerForWrite((c * ClusterPerSector) + i).Fill(0);
+                    DiskImage.GetDataControllerForWrite((c * ClusterPerSector) + i).Fill(0);
                 }
                 // 0x8x = 最後のクラスタ
                 if (end) break;
@@ -248,7 +270,7 @@ namespace Disk {
         public List<HuFileEntry> GetEntriesFromSector(int Sector) {
             List<HuFileEntry> FileList = new List<HuFileEntry>();
             for (int i = 0; i < ClusterPerSector; i++, Sector++) {
-                var dc = GetDataControllerForRead(Sector);
+                var dc = DiskImage.GetDataControllerForRead(Sector);
                 for (var j = 0; j < 8; j++) {
                     int pos = (j * 0x20);
                     var mode = dc.GetByte(pos);
@@ -275,7 +297,7 @@ namespace Disk {
             Filename = Name + "." + Extension;
 
             for (int i = 0; i < ClusterPerSector; i++, Sector++) {
-                var dc = GetDataControllerForRead(Sector);
+                var dc = DiskImage.GetDataControllerForRead(Sector);
                 for (var j = 0; j < EntriesInSector; j++) {
                     int pos = (j * FileEntrySize);
                     var mode = dc.GetByte(pos);
@@ -292,15 +314,16 @@ namespace Disk {
 
         public HuFileEntry GetNewFileEntry(int Sector) {
             for (int i = 0; i < ClusterPerSector; i++) {
-                var dc = GetDataControllerForRead(Sector + i);
+                var dc = DiskImage.GetDataControllerForRead(Sector + i);
                 for (var j = 0; j < EntriesInSector; j++) {
                     int pos = (j * FileEntrySize);
                     var mode = dc.GetByte(pos);
                     if (mode != EntryEnd && mode != EntryDelete) continue;
-                    var fe = new HuFileEntry();
-                    fe.EntrySector = Sector + i;
-                    fe.EntryPosition = pos;
-                    return fe;
+
+                    return new HuFileEntry {
+                        EntrySector = Sector + i,
+                        EntryPosition = pos
+                    };
                 }
             }
             return null;
@@ -321,13 +344,13 @@ namespace Disk {
         // ファイルエントリ書き出し
         public void WriteFileEntry(HuFileEntry fe) {
             FileEntryNormalize(fe);
-            var dc = GetDataControllerForWrite(fe.EntrySector);
+            var dc = DiskImage.GetDataControllerForWrite(fe.EntrySector);
             WriteEntry(dc, fe, fe.EntryPosition, fe.StartCluster, false);
         }
 
         // IPLエントリ書き出し
         public void WriteIplEntry(HuFileEntry fe) {
-            var dc = GetDataControllerForWrite(0);
+            var dc = DiskImage.GetDataControllerForWrite(0);
             WriteEntry(dc, fe, 0x00, fe.StartCluster * ClusterPerSector, true);
         }
 
@@ -358,7 +381,7 @@ namespace Disk {
             dc.SetByte(pos + 0x1f, (start >> 7) & 0x7f);
         }
 
-        public override bool ChangeDirectory(string EntryPath) {
+        public bool ChangeDirectory(string EntryPath) {
             if (EntryPath.Length == 0) return true;
             Console.WriteLine("Path:" + EntryPath);
             EntryPath = EntryPath.Replace('\\', '/');
@@ -407,16 +430,29 @@ namespace Disk {
             return true;
         }
 
-        public override void ListFiles(string Directory = "") {
+        public void ListFiles() {
             var Files = GetEntriesFromSector(EntrySector);
             foreach (var f in Files) {
                 f.Description();
             }
         }
 
-        public override void DisplayFreeSpace() {
+        public int GetFreeClusters() {
+            var Result = 0;
+            for (var i = 0; i < MaxCluster; i++) {
+                var end = IsEndCluster(i);
+                var ptr = ClusterValue(i);
+                if (!end && ptr == 0x00) Result++;
+            }
+            return Result;
+        }
+
+        public int GetFreeBytes(int FreeCluster) => FreeCluster * ClusterPerSector * SectorBytes;
+
+        public void DisplayFreeSpace() {
             var fc = GetFreeClusters();
-            Console.WriteLine("Free:{0} byte(s) / {1} cluster(s)", fc * ClusterPerSector * SectorBytes, fc);
+            var fb = GetFreeBytes(fc);
+            Console.WriteLine("Free:{0} byte(s) / {1} cluster(s)", fb, fc);
         }
 
         public void ExtractFileFromCluster(string OutputFile, int StartCluster, int Size) {
@@ -450,7 +486,7 @@ namespace Disk {
                     // セクタサイズか残りのバイト数を書き出す
                     var CurrentSectorBytes = LeftSize > SectorBytes ? SectorBytes : LeftSize;
                     LeftSize -= CurrentSectorBytes;
-                    fs.Write(GetSectorDataForWrite((c * ClusterPerSector) + i), 0, CurrentSectorBytes);
+                    fs.Write(DiskImage.GetSectorDataForWrite((c * ClusterPerSector) + i), 0, CurrentSectorBytes);
                 }
                 if (end) break;
                 c = next;
@@ -470,14 +506,13 @@ namespace Disk {
             int Size = Filesize;
             int c = StartCluster;
             while (true) {
-                var sc = 0;
                 var s = (c * ClusterPerSector);
                 var LastSector = 0;
-                for (sc = 0; sc < ClusterPerSector; sc++, s++) {
+                for (var sc = 0; sc < ClusterPerSector; sc++, s++) {
                     var Length = Size < SectorBytes ? Size : SectorBytes;
-                    Sectors[s].Fill(0x00);
+                    DiskImage.GetSector(s).Fill(0x00);
                     if (Size == 0) continue;
-                    fs.Read(GetSectorDataForWrite(s), 0, Length);
+                    fs.Read(DiskImage.GetSectorDataForWrite(s), 0, Length);
                     Size -= Length;
                     if (Length > 0) LastSector = sc;
                 }
@@ -501,7 +536,7 @@ namespace Disk {
             fs.Close();
         }
 
-        public override bool AddFile(string FilePath, string EntryName) {
+        public bool AddFile(string FilePath, string EntryName) {
             if (!File.Exists(FilePath)) return false;
             var fi = new FileInfo(FilePath);
 
@@ -515,8 +550,7 @@ namespace Disk {
             // エントリに確保されていたクラスタを解放する
             if (fe != null) {
                 RemoveAllocation(fe.StartCluster);
-            }
-            else {
+            } else {
                 fe = GetNewFileEntry(EntrySector);
             }
 
@@ -534,14 +568,7 @@ namespace Disk {
             fe.Extension = Path.GetExtension(Filename);
             fe.Password = PasswordNoUse;
 
-            int fc = -1;
-            if (IplMode) {
-                int Cluster = (fe.Size / (ClusterPerSector * SectorBytes)) + 1;
-                fc = GetNextFreeSerialCluster(Cluster);
-            }
-            else {
-                fc = GetNextFreeCluster();
-            }
+            int fc = GetFreeCluster(fe);
             if (fc < 0) {
                 Console.WriteLine("ERROR:No free cluster!");
                 return false;
@@ -552,8 +579,7 @@ namespace Disk {
                 WriteFileEntry(fe);
                 WriteIplEntry(fe);
                 IplMode = false;
-            }
-            else {
+            } else {
                 WriteFileEntry(fe);
             }
             WriteFileToImage(FilePath, fc, Size);
@@ -561,11 +587,22 @@ namespace Disk {
             return true;
         }
 
+        private int GetFreeCluster(HuFileEntry fe) {
+            if (IplMode) {
+                int Cluster = (fe.Size / (ClusterPerSector * SectorBytes)) + 1;
+                return GetNextFreeSerialCluster(Cluster);
+            } else {
+                return GetNextFreeCluster();
+            }
+
+        }
+
         private string PatternToRegex(string Pattern) {
             return "^" + Regex.Escape(Pattern).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
         }
 
         private void PatternFiles(string Name, bool Extract, bool Delete) {
+            string EntryName = Context.EntryName;
             string EntryPattern = !string.IsNullOrEmpty(EntryName) ? EntryName : Name;
 
             var r = new Regex(PatternToRegex(EntryPattern), RegexOptions.IgnoreCase);
@@ -586,11 +623,11 @@ namespace Disk {
             }
         }
 
-        public override void ExtractFiles(string Pattern) {
+        public void ExtractFiles(string Pattern) {
             PatternFiles(Pattern, true, false);
         }
 
-        public override void DeleteFiles(string Pattern) {
+        public void DeleteFiles(string Pattern) {
             PatternFiles(Pattern, false, true);
         }
     }

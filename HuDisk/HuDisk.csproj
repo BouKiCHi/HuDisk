@@ -73,9 +73,12 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="src\Context.cs" />
     <Compile Include="src\DataController.cs" />
     <Compile Include="src\DiskImage.cs" />
     <Compile Include="src\DiskManager.cs" />
+    <Compile Include="src\DiskParameter.cs" />
+    <Compile Include="src\DiskType.cs" />
     <Compile Include="src\HuBasicDiskImage.cs" />
     <Compile Include="src\HuDisk.cs" />
     <Compile Include="src\HuFileEntry.cs" />
@@ -83,6 +86,7 @@
     <Compile Include="src\OptionType.cs" />
     <Compile Include="src\Program.cs" />
     <Compile Include="src\SectorData.cs" />
+    <Compile Include="src\TrackFormat.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
