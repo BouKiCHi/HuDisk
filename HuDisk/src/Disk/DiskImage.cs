@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Disk {
 
-
     public class DiskImage {
 
         const int DefaultHeaderSize = 0x2b0;
@@ -21,9 +20,12 @@ namespace Disk {
         public bool IsWriteProtect;
 
         public DiskType DiskType { get; }
+        public Log Log { get; }
 
         public long ImageSize;
         private readonly string ImageFile;
+
+        public bool PlainFormat { get; }
 
         protected long[] TrackAddress = new long[MaxTrack];
 
@@ -34,19 +36,21 @@ namespace Disk {
 
         public bool Verbose;
 
-        public bool PlainFormat = false;
-
         public string EntryName;
 
         public Encoding TextEncoding { get; }
 
         public DiskImage(Context Context) {
             TextEncoding = Context.TextEncoding;
-            this.ImageFile = Context.ImageFile;
-            Verbose = false;
+
+            var Setting = Context.Setting;
+            this.ImageFile = Setting.ImageFile;
+            PlainFormat = Setting.DiskType.PlainFormat;
+
             DiskName = "";
             IsWriteProtect = false;
-            DiskType = Context.DiskType;
+            DiskType = Setting.DiskType;
+            Log = Context.Log;
 
         }
 
@@ -66,7 +70,10 @@ namespace Disk {
 
         public SectorData GetSector(int Sector) => Sectors[Sector];
 
-        public void Format() {
+        /// <summary>
+        /// フォーマット
+        /// </summary>
+        public void FormatImage() {
             var tf = DiskType.CurrentTrackFormat;
             TrackPerSector = tf.TrackPerSector;
             TrackFormat(tf.TrackMax, tf.TrackPerSector);
@@ -79,23 +86,44 @@ namespace Disk {
                 TrackAddress[t] = Position;
                 for (var s = 0; s < TrackPerSector; s++) {
                     var Sector = new SectorData();
-                    Sector.Make(t >> 1, t & 1, s + 1, 1, TrackPerSector, 0, false, 0, DefaultSectorSize);
+                    Sector.Format(t, s, TrackPerSector, DefaultSectorSize, Position);
+
                     Sectors.Add(Sector);
                     Position += DefaultSectorSize;
                 }
             }
         }
 
+        /// <summary>
+        /// イメージを読み込む
+        /// </summary>
+        /// <returns></returns>
+        public bool ReadImage() {
+            if (!File.Exists(ImageFile)) return false;
+            var fs = new FileStream(ImageFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+            if (!PlainFormat) ReadHeader(fs);
+
+            TrackPerSector = DiskType.GetTrackPerSector();
+            ReadSectors(fs);
+
+            fs.Close();
+            return true;
+        }
 
 
+
+        /// <summary>
+        /// イメージを出力する
+        /// </summary>
         public void WriteDisk() {
             var fs = new FileStream(ImageFile,
             FileMode.OpenOrCreate,
             FileAccess.Write,
             FileShare.ReadWrite);
 
-            var RebuildImage = IsRewriteImage();
-            if (Verbose) Console.WriteLine("RebuildImage:" + RebuildImage.ToString());
+            var RebuildImage = IsRebuildRequired();
+            Log.Verbose("RebuildImage:" + RebuildImage.ToString());
             if (!PlainFormat) {
                 if (RebuildImage) WriteHeader(fs);
             }
@@ -103,7 +131,8 @@ namespace Disk {
             fs.Close();
         }
 
-        public bool IsRewriteImage() {
+        // 再構築が必要か
+        private bool IsRebuildRequired() {
             var LastTrack = -1;
             var MaxDirtyTrack = 0;
             foreach (SectorData s in Sectors) {
@@ -114,11 +143,18 @@ namespace Disk {
                 if (TrackAddress[i] == 0x0) break;
                 LastTrack = i;
             }
+
+            // プレーンフォーマットでなく、ヘッダが異なる場合は再構築
             if (!PlainFormat && CurrentHeaderSize != DefaultHeaderSize) return true;
             if (LastTrack < MaxDirtyTrack) return true;
 
             return false;
         }
+
+        /// <summary>
+        /// ヘッダ出力
+        /// </summary>
+        /// <param name="fs"></param>
 
         private void WriteHeader(FileStream fs) {
             byte[] header = new byte[DefaultHeaderSize];
@@ -168,17 +204,11 @@ namespace Disk {
             }
         }
 
-        public bool Read() {
-            if (!File.Exists(ImageFile)) return false;
-            var fs = new FileStream(ImageFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            if (!PlainFormat) ReadHeader(fs);
-            TrackPerSector = DiskType.GetTrackPerSector();
-            ReadSectors(fs);
 
-            fs.Close();
-            return true;
-        }
 
+        /// <summary>
+        /// ヘッダを読み込む
+        /// </summary>
         void ReadHeader(FileStream fs) {
             byte[] header = new byte[0x2b0];
             fs.Read(header, 0, header.Length);
@@ -199,13 +229,10 @@ namespace Disk {
             }
         }
 
-        public void DiskDescription() {
-            Console.WriteLine("DiskName:{0}", this.DiskName);
-            Console.Write("IsWriteProtect:{0}", IsWriteProtect ? "Yes" : "No");
-            Console.Write(" DiskType:{0}", DiskType.GetTypeName());
-            Console.WriteLine(" ImageSize:{0}", ImageSize);
-        }
-
+        /// <summary>
+        /// セクタを読み出す
+        /// </summary>
+        /// <param name="fs"></param>
         void ReadSectors(FileStream fs) {
             int Track = 0;
             int SectorCount = 1;
@@ -222,7 +249,7 @@ namespace Disk {
                 }
                 if (SectorCount == 0x01) {
                     if (PlainFormat) TrackAddress[Track] = Address;
-                    if (Verbose) Console.WriteLine("Track:{0} Pos:{1:X} Address:{2:X}", Track, Address, TrackAddress[Track]);
+                    Log.Verbose($"Track:{Track} Pos:{Address:X} Address:{TrackAddress[Track]:X}");
                     Track++;
                 }
                 Sectors.Add(Sector);

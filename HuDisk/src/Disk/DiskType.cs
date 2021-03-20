@@ -16,7 +16,9 @@ namespace Disk {
         private DiskTypeEnum imageType;
 
         public DiskTypeEnum ImageType {
-            get => imageType; set {
+            get => imageType; 
+            // ディスク種別の設定
+            set {
                 imageType = value;
                 CurrentTrackFormat = new TrackFormat(value);
                 DiskParameter = new DiskParameter(value);
@@ -47,9 +49,12 @@ namespace Disk {
             }
         }
 
-
-        public void SetDiskTypeFromOption(string value) {
-            ForceType = true;
+        /// <summary>
+        /// オプションからの設定
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public bool SetDiskTypeFromOption(string value) {
             value = value.ToUpper();
             switch (value) {
                 case "2D":
@@ -62,9 +67,13 @@ namespace Disk {
                     ImageType = DiskTypeEnum.Disk2HD;
                     break;
                 default:
-                    Console.WriteLine("Unknown DiskType!!");
+                    ImageType = DiskTypeEnum.Unknown;
                     break;
             }
+
+            // 強制設定する
+            ForceType = ImageType != DiskTypeEnum.Unknown;
+            return ForceType;
         }
 
         public string GetTypeName() {
@@ -80,16 +89,21 @@ namespace Disk {
             }
         }
 
+        public void SetPlainFormat() {
+            PlainFormat = true;
+        }
+
         public void SetTypeFromExtension(string ext) {
             if (IsNotPlainExtension(ext)) return;
-            PlainFormat = true;
+
+            SetPlainFormat();
             var TypeFromExtenstion = ext == "2D" ? DiskTypeEnum.Disk2D : DiskTypeEnum.Disk2HD;
             if (!ForceType) ImageType = TypeFromExtenstion;
         }
 
         private static bool IsNotPlainExtension(string ext) => ext != "2D" && ext != "2HD";
 
-        public int GetTrackPerSector() {            
+        public int GetTrackPerSector() {
             return CurrentTrackFormat.TrackPerSector;
         }
 

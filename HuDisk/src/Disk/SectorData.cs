@@ -13,6 +13,9 @@ namespace Disk {
 
         public bool IsDelete;
         public int Status;
+
+        public long Position;
+
         public int DataSize;
 
         public byte[] Data;
@@ -28,6 +31,11 @@ namespace Disk {
 
         public SectorData(byte FillValue) {
             this.FillValue = FillValue;
+        }
+
+        public void Format(int t, int s, int TrackPerSector, int SectorSize, int Position) {
+            Make(t >> 1, t & 1, s + 1, 1, TrackPerSector, 0, false, 0, SectorSize);
+            this.Position = Position;
         }
 
         public void Make(int Track, int Side, int Sector, int NumOfSector, int SectorsInTrack, int Density, bool Delete, int Status, int DataSize) {
@@ -72,13 +80,14 @@ namespace Disk {
         }
 
         public bool Read(bool IsPlain, FileStream fs) {
+            Position = fs.Position;
             DataSize = DefaultSectorSize;
             if (!IsPlain && !ReadSectorHeader(fs)) return false;
             Data = new byte[DataSize];
             return (fs.Read(Data, 0, DataSize) == DataSize);
         }
 
-        public bool ReadSectorHeader(FileStream fs) {
+        private bool ReadSectorHeader(FileStream fs) {
             Header = new byte[0x10];
             int s = fs.Read(Header, 0, 0x10);
             if (s < 0x10) return false;
@@ -89,11 +98,13 @@ namespace Disk {
             NumOfSector = dc.GetByte(3);
             SectorsInTrack = dc.GetWord(4);
             Density = dc.GetByte(6);
-            IsDelete = dc.GetByte(7) != 0x00 ? true : false;
+            IsDelete = dc.GetByte(7) != 0x00;
             Status = dc.GetByte(8);
             DataSize = dc.GetWord(0x0e);
             return true;
         }
+
+
 
         public void Description() {
             Console.Write("C:{0} H:{1} R:{2} N:{3}", Track, Side, Sector, NumOfSector);

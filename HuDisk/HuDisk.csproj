@@ -74,19 +74,23 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="src\Context.cs" />
-    <Compile Include="src\DataController.cs" />
-    <Compile Include="src\DiskImage.cs" />
-    <Compile Include="src\DiskManager.cs" />
-    <Compile Include="src\DiskParameter.cs" />
-    <Compile Include="src\DiskType.cs" />
-    <Compile Include="src\HuBasicDiskImage.cs" />
+    <Compile Include="src\Disk\DataController.cs" />
+    <Compile Include="src\Disk\DiskImage.cs" />
+    <Compile Include="src\Disk\DiskManager.cs" />
+    <Compile Include="src\Disk\DiskParameter.cs" />
+    <Compile Include="src\Disk\DiskType.cs" />
+    <Compile Include="src\HuBasic\HuBasicDisk.cs" />
+    <Compile Include="src\HuBasic\HuBasicDiskEntry.cs" />
+    <Compile Include="src\HuBasic\HuBasicDiskImage.cs" />
     <Compile Include="src\HuDisk.cs" />
-    <Compile Include="src\HuFileEntry.cs" />
+    <Compile Include="src\HuBasic\HuFileEntry.cs" />
+    <Compile Include="src\Log.cs" />
     <Compile Include="src\MiniOption.cs" />
     <Compile Include="src\OptionType.cs" />
     <Compile Include="src\Program.cs" />
-    <Compile Include="src\SectorData.cs" />
-    <Compile Include="src\TrackFormat.cs" />
+    <Compile Include="src\Disk\SectorData.cs" />
+    <Compile Include="src\Disk\TrackFormat.cs" />
+    <Compile Include="src\Setting.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">

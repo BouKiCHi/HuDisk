@@ -1,8 +1,9 @@
 ﻿using System;
+using System.IO;
 
 namespace Disk {
     class HuFileEntry {
-        public int Mode;
+        public int FileMode;
         public string Name;
         public string Extension;
         public int Password;
@@ -17,6 +18,7 @@ namespace Disk {
         public const int MaxExtensionLength = 3;
 
         public byte[] DateTimeData = new byte[6];
+        internal bool IsIplEntry;
 
         public string GetFilename() {
             if (Extension.Length == 0) return Name;
@@ -24,7 +26,7 @@ namespace Disk {
         }
 
         public void Description() {
-            string TypeText = (Mode & 0x80) != 0x00 ? "Dir " : "File";
+            string TypeText = IsDirectory ? "Dir " : "File";
             Console.WriteLine(
                 TypeText + ":{0,-16} Date:{1} Size:{2,-5} Load:{3,-5} Exec:{4,-5} Start:{5,5}",
                 GetFilename(),
@@ -76,11 +78,63 @@ namespace Disk {
         }
 
         public void SetDelete() {
-            Mode = 0x00;
+            FileMode = 0x00;
         }
 
-        public bool IsDirectory() {
-            return ((Mode & 0x80) != 0x00);
+        public bool IsDelete() {
+            return FileMode == 0x00;
+        }
+
+        public bool IsDirectory => (FileMode & 0x80) != 0x00;
+
+        const int PasswordNoUseByte = 0x20;
+
+
+        const int BinaryFileModeByte = 0x01;
+        const int DirectoryFileModeByte = 0x80;
+
+
+        public void SetFileInfo(string Filename, int Size, DateTime FileDate,
+            int ExecuteAddress, int LoadAddress,
+            bool UseBinaryFileMode = true, bool NoPassword = true) {
+            SetTime(FileDate);
+            FileMode = UseBinaryFileMode ? BinaryFileModeByte : 0x00;
+            this.Size = Size;
+            this.ExecuteAddress = ExecuteAddress;
+            this.LoadAddress = LoadAddress;
+            SetFilename(Filename);
+            SetNoPassword(NoPassword);
+        }
+
+        public void SetNewDirectoryEntry(string Filename) {
+            SetTime(DateTime.Now);
+            FileMode = DirectoryFileModeByte;
+            SetFilename(Filename);
+            SetNoPassword(true);
+        }
+
+        private void SetNoPassword(bool NoPassword) {
+            Password = NoPassword ? PasswordNoUseByte : 0x00;
+        }
+
+        private void SetFilename(string Filename) {
+            Name = Path.GetFileNameWithoutExtension(Filename);
+            Extension = Path.GetExtension(Filename);
+        }
+
+        public void SetEntryFromSector(DataController dc, int sector, int pos, string Name, string Extension) {
+            this.Name = Name;
+            this.Extension = Extension;
+            EntrySector = sector;
+            EntryPosition = pos;
+            FileMode = dc.GetByte(pos);
+            Password = dc.GetByte(pos + 0x11);
+            Size = dc.GetWord(pos + 0x12);
+            LoadAddress = dc.GetWord(pos + 0x14);
+            ExecuteAddress = dc.GetWord(pos + 0x16);
+            DateTimeData = dc.Copy(pos + 0x18, 6);
+            StartCluster = dc.GetByte(pos + 0x1e);
+            StartCluster |= dc.GetByte(pos + 0x1f) << 7;
         }
     }
 }
