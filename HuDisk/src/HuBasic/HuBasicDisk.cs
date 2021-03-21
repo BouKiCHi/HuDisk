@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Disk {
 
@@ -17,8 +18,6 @@ namespace Disk {
             Image = new HuBasicDiskImage(Context);
         }
 
-
-
         /// <summary>
         /// 編集
         /// </summary>
@@ -35,62 +34,51 @@ namespace Disk {
             var EntryName = Context.Setting.EntryName;
 
             switch (Context.RunMode) {
-                case RunModeTypeEnum.Add:
-                    Log.Info("Add files:");
-                    if (Files.Count == 1) {
-                        Log.Info("No files to add.");
-                    } else {
-                        if (!AddFile(Files, EntryName)) return false;
-                    }
-                    EditEnd();
 
-                    break;
-                case RunModeTypeEnum.List:
-                    Log.Info("List files:");
-                    ListFiles();
-                    DisplayFreeSpace();
-                    break;
                 case RunModeTypeEnum.Extract:
                     Log.Info("Extract files:");
                     Extract();
+                    return true;
+
+                case RunModeTypeEnum.Add:
+                    Log.Info("Add files:");
+                    if (!AddFile(Files, EntryName)) return false;
+                    break;
+
+                case RunModeTypeEnum.List:
+                    Log.Info("List files:");
+                    ListFiles();
                     break;
 
                 case RunModeTypeEnum.Delete:
                     Log.Info("Delete files:");
-                    Delete();
-                    EditEnd();
+                    // ファイル未指定ではすべて削除
+                    DeleteFile(Files);
+
                     break;
             }
 
+            DisplayFreeSpace();
             return true;
         }
 
-        /// <summary>
-        /// 編集終了
-        /// </summary>
-        private void EditEnd() {
-            DisplayFreeSpace();
-            Image.EditEnd();
+        private bool AddFile(List<string> Files, string EntryName) {
+            if (Files.Count == 1) {
+                Log.Info("No files to add.");
+                Image.WriteImage();
+                return true;
+            }
+            return Image.AddFile(Files.Skip(1), EntryName);
+
         }
 
-
-        /// <summary>
-        /// ファイル展開
-        /// </summary>
-        /// <param name="Filename"></param>
-        public void ExtractFile(string Filename) {
-            Image.ExtractFiles(Filename);
+        private void DeleteFile(List<string> Files) {
+            if (Files.Count == 1) {
+                Image.DeleteAll();
+            } else {
+                Image.DeleteFile(Files.Skip(1).ToArray());
+            }
         }
-
-        /// <summary>
-        /// イメージ内ファイル削除
-        /// </summary>
-        /// <param name="Filename"></param>
-        public void DeleteFile(string Filename) {
-            Image.DeleteFiles(Filename);
-        }
-
-
 
         private void Extract() {
             var Files = Context.Files;
@@ -98,54 +86,9 @@ namespace Disk {
 
             for (var i = 1; i < Files.Count; i++) {
                 var Filename = Files[i];
-                ExtractFile(Filename);
+                Image.Extract(Filename);
             }
         }
-
-
-        private void Delete() {
-            var Files = Context.Files;
-
-            // ファイル未指定ではすべて削除
-            if (Files.Count == 1) {
-                Image.DeleteFiles("*");
-                return;
-            }
-
-            for (var i = 1; i < Files.Count; i++) {
-                var Filename = Files[i];
-                DeleteFile(Filename);
-            }
-        }
-
-        public bool AddFile(List<string> Files, string EntryName) {
-
-
-            for (var i = 1; i < Files.Count; i++) {
-                string s = Files[i];
-                if (!AddFile(s, EntryName)) return false;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// ファイルの追加
-        /// </summary>
-        /// <param name="FilePath">追加するファイルのパス</param>
-        /// <param name="EntryName">エントリ名(設定したい場合)</param>
-        /// <returns></returns>
-        public bool AddFile(string FilePath, string EntryName = null) {
-            return Image.AddFile(FilePath, EntryName);
-        }
-
-        /// <summary>
-        /// ファイルエントリの取得
-        /// </summary>
-        /// <returns></returns>
-        public List<HuFileEntry> GetFileEntry() {
-            return Image.Entries;
-        }
-
 
         /// <summary>
         /// イメージ内のエントリを設定
@@ -153,6 +96,8 @@ namespace Disk {
         public bool SetEntryDirectory(string EntryDirectory) {
             if (EntryDirectory.Length == 0) return true;
             Log.Info("EntryDirectory:" + EntryDirectory);
+
+            // パス区切りは「\」と「/」を使用できる
             EntryDirectory = EntryDirectory.Replace('\\', '/');
             foreach (string Name in EntryDirectory.Split('/')) {
                 if (Name.Length == 0) continue;
@@ -167,13 +112,11 @@ namespace Disk {
         /// </summary>
 
         public void ListFiles() {
-            List<HuFileEntry> Files = GetFileEntry();
+            List<HuFileEntry> Files = Image.GetEntries();
             foreach (var f in Files) {
-                f.Description();
+                Log.Info(f.Description());
             }
         }
-
-
 
         public void DisplayFreeSpace() {
             var fc = Image.CountFreeClusters();

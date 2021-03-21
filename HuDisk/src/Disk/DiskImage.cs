@@ -73,7 +73,7 @@ namespace Disk {
         /// <summary>
         /// フォーマット
         /// </summary>
-        public void FormatImage() {
+        public void Format() {
             var tf = DiskType.CurrentTrackFormat;
             TrackPerSector = tf.TrackPerSector;
             TrackFormat(tf.TrackMax, tf.TrackPerSector);
@@ -98,7 +98,7 @@ namespace Disk {
         /// イメージを読み込む
         /// </summary>
         /// <returns></returns>
-        public bool ReadImage() {
+        public bool Read() {
             if (!File.Exists(ImageFile)) return false;
             var fs = new FileStream(ImageFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 
@@ -116,7 +116,7 @@ namespace Disk {
         /// <summary>
         /// イメージを出力する
         /// </summary>
-        public void WriteDisk() {
+        public void Write() {
             var fs = new FileStream(ImageFile,
             FileMode.OpenOrCreate,
             FileAccess.Write,

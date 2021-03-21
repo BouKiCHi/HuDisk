@@ -28,7 +28,8 @@ namespace Disk {
         ImageType,
         Path,
         Verbose,
-        Ascii
+        ForceAscii,
+        ForceBinary
     }
 
     public class Context {
@@ -106,7 +107,8 @@ namespace Disk {
                 new MiniOption.DefineData(OptionType.EntryName,null,"name",true),
                 new MiniOption.DefineData(OptionType.Path,null,"path",true),
                 new MiniOption.DefineData(OptionType.Verbose,"v","verbose",false),
-                new MiniOption.DefineData(OptionType.Ascii,null,"ascii",false),
+                new MiniOption.DefineData(OptionType.ForceAscii,null,"ascii",false),
+                new MiniOption.DefineData(OptionType.ForceBinary,null,"binary",false),
 
                 new MiniOption.DefineData(OptionType.Help,"h","help",false),
                 new MiniOption.DefineData(OptionType.Help,"?",null,false)
@@ -134,8 +136,9 @@ namespace Disk {
             Console.WriteLine(" --x1s    Set x1save.exe compatible mode");
             Console.WriteLine(" --name <name>   Set entry name as <name>");
             Console.WriteLine(" --path <path>   Change directory in image");
-            Console.WriteLine(" -v,--verbose Change directory in image");
-            Console.WriteLine(" --ascii Set ASCII Mode");
+            Console.WriteLine(" -v,--verbose Set verbose mode");
+            Console.WriteLine(" --binary Force binary mode");
+            Console.WriteLine(" --ascii Force ASCII mode");
             Console.WriteLine();
             Console.WriteLine(" -h,-?,--help  This one");
         }
@@ -197,8 +200,12 @@ namespace Disk {
                     Setting.X1SMode = true;
                     break;
 
-                case OptionType.Ascii:
-                    Setting.AsciiMode = true;
+                case OptionType.ForceAscii:
+                    Setting.ForceAsciiMode = true;
+                    break;
+
+                case OptionType.ForceBinary:
+                    Setting.ForceBinaryMode = true;
                     break;
 
                 case OptionType.Verbose:

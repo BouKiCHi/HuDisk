@@ -15,29 +15,29 @@ namespace Disk {
         public bool PlainFormat;
         private DiskTypeEnum imageType;
 
-        public DiskTypeEnum ImageType {
-            get => imageType; 
-            // ディスク種別の設定
-            set {
-                imageType = value;
-                CurrentTrackFormat = new TrackFormat(value);
-                DiskParameter = new DiskParameter(value);
-            }
+        public DiskTypeEnum GetImageType() {
+            return imageType;
+        }
+
+        public void SetImageType(DiskTypeEnum value) {
+            imageType = value;
+            CurrentTrackFormat = new TrackFormat(value);
+            DiskParameter = new DiskParameter(value);
         }
 
         public TrackFormat CurrentTrackFormat;
         public DiskParameter DiskParameter;
 
         public DiskType() {
-            ImageType = DiskTypeEnum.Disk2D;
+            SetImageType(DiskTypeEnum.Disk2D);
         }
 
         // 
-        public bool IsNot2D => ImageType == DiskTypeEnum.Disk2DD || ImageType == DiskTypeEnum.Disk2HD;
+        public bool IsNot2D => GetImageType() == DiskTypeEnum.Disk2DD || GetImageType() == DiskTypeEnum.Disk2HD;
 
         public int ImageTypeByte {
             get {
-                switch (ImageType) {
+                switch (GetImageType()) {
                     case DiskTypeEnum.Disk2D:
                         return 0x00;
                     case DiskTypeEnum.Disk2DD:
@@ -58,26 +58,26 @@ namespace Disk {
             value = value.ToUpper();
             switch (value) {
                 case "2D":
-                    ImageType = DiskTypeEnum.Disk2D;
+                    SetImageType(DiskTypeEnum.Disk2D);
                     break;
                 case "2DD":
-                    ImageType = DiskTypeEnum.Disk2DD;
+                    SetImageType(DiskTypeEnum.Disk2DD);
                     break;
                 case "2HD":
-                    ImageType = DiskTypeEnum.Disk2HD;
+                    SetImageType(DiskTypeEnum.Disk2HD);
                     break;
                 default:
-                    ImageType = DiskTypeEnum.Unknown;
+                    SetImageType(DiskTypeEnum.Unknown);
                     break;
             }
 
             // 強制設定する
-            ForceType = ImageType != DiskTypeEnum.Unknown;
+            ForceType = GetImageType() != DiskTypeEnum.Unknown;
             return ForceType;
         }
 
         public string GetTypeName() {
-            switch (ImageType) {
+            switch (GetImageType()) {
                 case DiskTypeEnum.Disk2D:
                     return "2D";
                 case DiskTypeEnum.Disk2DD:
@@ -98,7 +98,7 @@ namespace Disk {
 
             SetPlainFormat();
             var TypeFromExtenstion = ext == "2D" ? DiskTypeEnum.Disk2D : DiskTypeEnum.Disk2HD;
-            if (!ForceType) ImageType = TypeFromExtenstion;
+            if (!ForceType) SetImageType(TypeFromExtenstion);
         }
 
         private static bool IsNotPlainExtension(string ext) => ext != "2D" && ext != "2HD";
@@ -110,14 +110,14 @@ namespace Disk {
         public void SetImageTypeFromHeader(byte t) {
             switch(t) {
                 case 0x20: // 2HD
-                    ImageType = DiskTypeEnum.Disk2HD;
+                    SetImageType(DiskTypeEnum.Disk2HD);
                     break;
                 case 0x10: // 2DD
-                    ImageType = DiskTypeEnum.Disk2DD;
+                    SetImageType(DiskTypeEnum.Disk2DD);
                     break;
                 case 0x00: // 2D
                 default:
-                    ImageType = DiskTypeEnum.Disk2D;
+                    SetImageType(DiskTypeEnum.Disk2D);
                     break;
             }
         }

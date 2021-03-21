@@ -38,19 +38,19 @@ namespace Disk {
             Setting = Context.Setting;
 
             DiskType = Setting.DiskType;
-            ImageType = Setting.DiskType.ImageType;
+            ImageType = Setting.DiskType.GetImageType();
             TextEncoding = Context.TextEncoding;
 
             Log = Context.Log;
             if (Setting.FormatImage) FormatDisk(); else ReadOrFormat();
         }
 
-        public void WriteDisk() {
-            DiskImage.WriteDisk();
+        public void WriteImage() {
+            DiskImage.Write();
         }
 
         public void ReadOrFormat() {
-            if (!DiskImage.ReadImage()) {
+            if (!DiskImage.Read()) {
                 FormatDisk();
                 return;
             }
@@ -58,7 +58,7 @@ namespace Disk {
             SetParameter(false);
         }
         public void FormatDisk() {
-            DiskImage.FormatImage();
+            DiskImage.Format();
             SetParameter(true);
         }
 
@@ -94,14 +94,21 @@ namespace Disk {
         /// <summary>
         /// ファイル展開
         /// </summary>
-        public void ExtractFile(Stream fs, int StartCluster, int Size) {
+        public void ExtractFile(Stream fs, HuFileEntry fe) {
+            int StartCluster = fe.StartCluster;
+            int Size = fe.Size;
+
+            bool AsciiMode = fe.IsAscii;
+
             int c = StartCluster;
             int LeftSize = Size;
 
             int TotalOutputBytes = 0;
 
             bool SectorWriteMode = Size == 0;
-            bool AsciiMode = Setting.AsciiMode;
+
+            if (Setting.ForceAsciiMode) AsciiMode = true;
+            if (Setting.ForceBinaryMode) AsciiMode = false;
 
             while (true) {
                 var end = IsEndCluster(c);
@@ -202,7 +209,7 @@ namespace Disk {
         /// ファイルの削除
         /// </summary>
 
-        public void DeleteFile(HuFileEntry fe) {
+        public void Delete(HuFileEntry fe) {
             fe.SetDelete();
             WriteFileEntry(fe);
             RemoveAllocation(fe.StartCluster);

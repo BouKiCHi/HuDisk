@@ -1,7 +1,7 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Disk {
@@ -13,15 +13,15 @@ namespace Disk {
 
         Setting Setting;
 
-        public bool SetIplEntry;
+        public bool IplEntry;
 
-        public string IplModeText => SetIplEntry ? "IPL" : "";
+        public string IplModeText => IplEntry ? "IPL" : "";
 
         public HuBasicDiskImage(Context context) {
             this.Context = context;
             Setting = context.Setting;
 
-            SetIplEntry = context.Setting.IplMode;
+            IplEntry = context.Setting.IplMode;
             Log = Context.Log;
             DiskEntry = new HuBasicDiskEntry(Context);
         }
@@ -39,13 +39,6 @@ namespace Disk {
         }
 
         /// <summary>
-        /// 編集終了
-        /// </summary>
-        public void EditEnd() {
-            DiskEntry.WriteDisk();
-        }
-
-        /// <summary>
         /// 空きバイト数
         /// </summary>
         public int GetFreeBytes(int FreeCluster) => DiskEntry.GetFreeBytes(FreeCluster);
@@ -58,7 +51,7 @@ namespace Disk {
         /// <summary>
         /// ファイルエントリを取得
         /// </summary>
-        public List<HuFileEntry> Entries => DiskEntry.GetEntries();
+        public List<HuFileEntry> GetEntries() => DiskEntry.GetEntries();
 
         /// <summary>
         /// イメージのディレクトリを開く
@@ -76,14 +69,71 @@ namespace Disk {
         /// ファイル展開(パターン)
         /// </summary>
         /// <param name="Pattern"></param>
-        public void ExtractFiles(string Pattern) => PatternFiles(Pattern, true, false);
+        public void Extract(string Pattern) => ExtractPattern(Pattern);
 
         /// <summary>
         /// ファイル削除
         /// </summary>
         /// <param name="Pattern"></param>
-        public void DeleteFiles(string Pattern) => PatternFiles(Pattern, false, true);
+        public void Delete(string Pattern) => DeletePattern(Pattern);
 
+        /// <summary>
+        /// ファイル削除。イメージにも書き込む。
+        /// </summary>
+        /// <param name="Pattern"></param>
+        public void DeleteFile(IEnumerable<string> Files) {
+            foreach (var Filename in Files) {
+                Delete(Filename);
+            }
+            WriteImage();
+        }
+
+        /// <summary>
+        /// ファイルをすべて削除。イメージにも書き込む。
+        /// </summary>
+        public void DeleteAll() {
+            Delete("*");
+            WriteImage();
+        }
+
+        /// <summary>
+        /// ファイル追加
+        /// </summary>
+        /// <param name="FilePathData">追加するファイルパス</param>
+        /// <param name="EntryName">追加するエントリ名</param>
+        /// <returns></returns>
+
+        public bool AddFile(IEnumerable<string> FilePathData, string EntryName = null) {
+
+            foreach (var s in FilePathData) {
+                if (!AddFile(s, EntryName)) return false;
+            }
+
+            WriteImage();
+            return true;
+        }
+
+        /// <summary>
+        /// イメージの書き出し
+        /// </summary>
+        public void WriteImage() {
+            DiskEntry.WriteImage();
+        }
+
+        /// <summary>
+        /// ファイル展開
+        /// </summary>
+        /// <param name="OutputFilename"></param>
+        /// <param name="fe"></param>
+        private void ExtractFile(string OutputFilename, HuFileEntry fe) {
+            // 出力ストリーム選択
+            using (Stream fs = SelectOutputStream(OutputFilename)) {
+                DiskEntry.ExtractFile(fs, fe);
+
+                //Extract(fs, fe);
+                fs.Close();
+            }
+        }
 
         /// <summary>
         /// ファイル展開
@@ -92,11 +142,17 @@ namespace Disk {
         /// <param name="StartCluster">開始クラスタ</param>
         /// <param name="FileSize"></param>
         public void Extract(Stream fs, int StartCluster, int FileSize) {
-            DiskEntry.ExtractFile(fs, StartCluster, FileSize);
         }
 
 
-        public bool AddFile(string FilePath, string EntryName) {
+        /// <summary>
+        /// ファイルの追加
+        /// </summary>
+        /// <param name="FilePath">追加するファイルのパス</param>
+        /// <param name="EntryName">エントリ名(設定したい場合)</param>
+        /// <returns></returns>
+
+        public bool AddFile(string FilePath, string EntryName = null) {
             if (!File.Exists(FilePath)) return false;
             var fi = new FileInfo(FilePath);
 
@@ -112,8 +168,6 @@ namespace Disk {
         }
 
 
-
-
         private HuFileEntry AddEntry(string EntryFilename, int Size, DateTime FileDate) {
             HuFileEntry fe = MakeFileEntry(EntryFilename, Size, FileDate);
             if (fe == null) {
@@ -127,14 +181,14 @@ namespace Disk {
                 return null;
             }
             fe.StartCluster = fc;
-            fe.IsIplEntry = SetIplEntry;
+            fe.IsIplEntry = IplEntry;
 
             DiskEntry.WriteFileEntry(fe);
 
             // ファイルをIPL設定する
-            if (SetIplEntry) {
+            if (IplEntry) {
                 Log.Info($"IPL Name:{Setting.IplName}");
-                SetIplEntry = false;
+                IplEntry = false;
             }
 
             return fe;
@@ -142,7 +196,7 @@ namespace Disk {
 
         private HuFileEntry MakeFileEntry(string EntryFilename, int Size, DateTime FileDate) {
             var fe = DiskEntry.GetWritableEntry(EntryFilename);
-            fe.SetFileInfo(EntryFilename, Size, FileDate, Setting.ExecuteAddress, Setting.LoadAddress);
+            fe.Set(EntryFilename, Size, FileDate, Setting.ExecuteAddress, Setting.LoadAddress);
             return fe;
         }
 
@@ -157,41 +211,51 @@ namespace Disk {
         }
 
 
-        private void PatternFiles(string Name, bool Extract, bool Delete) {
+        private void ExtractPattern(string Name) {
             string EntryName = Setting.EntryName;
             string EntryPattern = !string.IsNullOrEmpty(EntryName) ? EntryName : Name;
+
+            HuFileEntry[] MatchedFiles = GetMatchedFiles(EntryPattern);
+
+            // 展開
+            foreach (var fe in MatchedFiles) {
+                Log.Info(fe.Description());
+                var OutputName = !string.IsNullOrEmpty(EntryName) ? Name : fe.GetFilename();
+                ExtractFile(OutputName, fe);
+            }
+        }
+
+
+
+        private void DeletePattern(string Name) {
+            HuFileEntry[] MatchedFiles = GetMatchedFiles(Name);
+
+            foreach (var fe in MatchedFiles) {
+                Log.Info(fe.Description());
+                DiskEntry.Delete(fe);
+            }
+        }
+
+        /// <summary>
+        /// パターンに一致したファイルエントリを取得する
+        /// </summary>
+        /// <param name="EntryPattern">パターン(グロブ)</param>
+        /// <returns></returns>
+
+        public HuFileEntry[] GetMatchedFiles(string EntryPattern) {
 
             var r = new Regex(PatternToRegex(EntryPattern), RegexOptions.IgnoreCase);
             var Files = DiskEntry.GetEntries();
 
-            foreach (var fe in Files) {
-                if (!r.IsMatch(fe.GetFilename())) continue;
-                fe.Description();
-                var OutputName = !string.IsNullOrEmpty(EntryName) ? Name : fe.GetFilename();
-
-                // 展開
-                if (Extract) {
-                    ExtractFileFromCluster(OutputName, fe.StartCluster, fe.Size);
-                }
-
-                // 削除
-                if (Delete) {
-                    DiskEntry.DeleteFile(fe);
-                }
-            }
+            var MatchedFiles = Files.Where(x => r.IsMatch(x.GetFilename())).ToArray();
+            return MatchedFiles;
         }
 
         private string PatternToRegex(string Pattern) {
             return "^" + Regex.Escape(Pattern).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
         }
 
-        private void ExtractFileFromCluster(string OutputFile, int StartCluster, int FileSize) {
-            // 出力ストリーム選択
-            Stream fs = SelectOutputStream(OutputFile);
 
-            Extract(fs, StartCluster, FileSize);
-            fs.Close();
-        }
 
 
         private static Stream SelectOutputStream(string OutputFile) {

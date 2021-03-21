@@ -10,7 +10,6 @@ namespace Disk.Tests {
 
         [TestMethod()]
         public void NoArgumentTest() {
-            var HuDisk = new HuDisk();
             Assert.IsFalse(HuDisk.Run(new string[] { }));
         }
 
@@ -27,10 +26,16 @@ namespace Disk.Tests {
 
         [TestMethod()]
         public void ExtractImageTest() {
-            var ImageFilename = "test.d88";
-            var HuDisk = new HuDisk();
-            Assert.IsTrue(HuDisk.Run(new string[] { ImageFilename, "-l" }));
-            Assert.IsTrue(HuDisk.Run(new string[] { ImageFilename, "-v","--ascii", "-x", "*" }));
+            var TargetFile = "ascii.bin";
+            var ImageFile = GetDataFilePath("testimg.2d");
+            var ExpectedDataFile = GetDataFilePath(TargetFile);
+
+            var ExpectedData = File.ReadAllBytes(ExpectedDataFile);
+
+            Assert.IsTrue(HuDisk.Run(new string[] { ImageFile, "-v","-x", "*" }));
+
+            var b = IsEqualFile(TargetFile, ExpectedData);
+            Assert.IsTrue(b);
         }
 
 
@@ -80,12 +85,11 @@ namespace Disk.Tests {
         }
 
         private void AddData(string ImageFilename, int MaxCluster) {
-            var HuDisk = new HuDisk();
             for (var i = 0; i < MaxCluster; i++) {
-                AddClusterFile(HuDisk, ImageFilename, i);
+                AddClusterFile(ImageFilename, i);
             }
 
-            AddClusterFile(HuDisk, ImageFilename, MaxCluster, true);
+            AddClusterFile(ImageFilename, MaxCluster, true);
 
             for(var i = 0; i < MaxCluster; i++) {
                 string ClusterFilename = GetClusterFilename(i);
@@ -101,12 +105,12 @@ namespace Disk.Tests {
         }
 
 
-        private void AddClusterFile(HuDisk huDisk, string ImageFilename, int i, bool Fail = false) {
+        private void AddClusterFile(string ImageFilename, int i, bool Fail = false) {
             string ClusterFilename = GetClusterFilename(i);
 
             WriteClusterFile(i, ClusterFilename);
 
-            bool Result = huDisk.Run(new string[] { ImageFilename, "-a", ClusterFilename });
+            bool Result = HuDisk.Run(new string[] { ImageFilename, "-a", ClusterFilename });
             if (Fail) Assert.IsFalse(Result); else Assert.IsTrue(Result);
 
             DeleteFile(ClusterFilename);
@@ -141,9 +145,8 @@ namespace Disk.Tests {
 
         private void CheckFilesize(int FileSize) {
             var ImageFilename = "sizetest.2d";
-            var HuDisk = new HuDisk();
             var Filename = $"{FileSize}.bin";
-            var SourceFile = GetFilepath(Filename);
+            var SourceFile = GetDataFilePath(Filename);
             DeleteFile(ImageFilename);
             DeleteFile(Filename);
             Assert.IsTrue(HuDisk.Run(new string[] { ImageFilename, "-a", SourceFile }));
@@ -170,7 +173,7 @@ namespace Disk.Tests {
             return Data.SequenceEqual(s2);
         }
 
-        string GetFilepath(string Filename) {
+        string GetDataFilePath(string Filename) {
             return "..\\..\\data\\" + Filename;
         }
 
@@ -191,8 +194,6 @@ namespace Disk.Tests {
         }
 
         private void FormatTest(string ImageFilename, string ExpectedHash, string FormatType) {
-            var HuDisk = new HuDisk();
-
             DeleteFile(ImageFilename);
 
             HuDisk.Run(new string[] { ImageFilename, "--format", "--type", FormatType });

@@ -25,17 +25,22 @@ namespace Disk {
             return Name + "." + Extension;
         }
 
-        public void Description() {
-            string TypeText = IsDirectory ? "Dir " : "File";
-            Console.WriteLine(
-                TypeText + ":{0,-16} Date:{1} Size:{2,-5} Load:{3,-5} Exec:{4,-5} Start:{5,5}",
-                GetFilename(),
-                GetFileDate(),
-                Size,
-                LoadAddress.ToString("X4"),
-                ExecuteAddress.ToString("X4"),
-                StartCluster
-            );
+        public string Description() {
+            string TypeText = GetTypeText();
+            string LoadAddressText = LoadAddress.ToString("X4");
+            string ExecuteAddressText = ExecuteAddress.ToString("X4");
+
+            string AddressText = $"Load:{LoadAddressText,-5} Exec:{ExecuteAddressText,-5}";
+            string BasicInfoText = $"{GetFilename(),-16} Type:{TypeText,4} Date:{GetFileDate()} Size:{Size,-5}";
+
+            return $"{BasicInfoText} {AddressText} Start:{StartCluster,5}";
+        }
+
+        private string GetTypeText() {
+            if (IsDirectory) return "DIR";
+            if (IsAscii) return "ASC";
+            if (IsBinary) return "BIN";
+            return "FILE";
         }
 
         private string GetFileDate() {
@@ -81,30 +86,44 @@ namespace Disk {
             FileMode = 0x00;
         }
 
-        public bool IsDelete() {
-            return FileMode == 0x00;
-        }
+        public bool IsDelete() => FileMode == 0x00;
 
+        const int DirectoryFileModeByte = 0x80;
+
+        const int BinaryFileModeByte = 0x01;
+
+        const int AsciiFileModeByte = 0x04;
+
+
+        // ファイルモードの値 bit:機能
+        // 7:ディレクトリ 6:読み出しのみ 5:ベリファイ？ 4:隠しファイル 3:不明 2:アスキー 1:BASIC 0:バイナリ
         public bool IsDirectory => (FileMode & 0x80) != 0x00;
+
+        public bool IsAscii => (FileMode & 0x04) != 0x00;
+        public bool IsBinary => (FileMode & 0x01) != 0x00;
+
 
         const int PasswordNoUseByte = 0x20;
 
 
-        const int BinaryFileModeByte = 0x01;
-        const int DirectoryFileModeByte = 0x80;
-
-
-        public void SetFileInfo(string Filename, int Size, DateTime FileDate,
-            int ExecuteAddress, int LoadAddress,
+        /// <summary>
+        /// ファイルエントリの設定
+        /// </summary>
+        public void Set(string Filename, int Size, DateTime FileDate,int ExecuteAddress, int LoadAddress,
             bool UseBinaryFileMode = true, bool NoPassword = true) {
             SetTime(FileDate);
-            FileMode = UseBinaryFileMode ? BinaryFileModeByte : 0x00;
+            FileMode = UseBinaryFileMode ? BinaryFileModeByte : AsciiFileModeByte;
+
+            // サイズがWORDよりも大きい場合は0にする
+            if (Size >= 0x10000) Size = 0x0;
             this.Size = Size;
             this.ExecuteAddress = ExecuteAddress;
             this.LoadAddress = LoadAddress;
             SetFilename(Filename);
             SetNoPassword(NoPassword);
         }
+
+
 
         public void SetNewDirectoryEntry(string Filename) {
             SetTime(DateTime.Now);

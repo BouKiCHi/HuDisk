@@ -12,7 +12,8 @@ namespace Disk {
 
         public bool FormatImage = false;
 
-        public bool AsciiMode;
+        public bool ForceAsciiMode;
+        public bool ForceBinaryMode;
 
 
         public string EntryName = "";
