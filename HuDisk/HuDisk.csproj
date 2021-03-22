@@ -68,26 +68,26 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\HuBasic\Context.cs" />
+    <Compile Include="src\HuBasic\HuBasicDisk.cs" />
+    <Compile Include="src\HuBasic\HuBasicDiskEntry.cs" />
+    <Compile Include="src\HuBasic\HuBasicDiskImage.cs" />
+    <Compile Include="src\HuBasic\HuFileEntry.cs" />
+    <Compile Include="src\HuBasic\Setting.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="src\HuBasic\Context.cs" />
     <Compile Include="src\Disk\DataController.cs" />
     <Compile Include="src\Disk\DiskImage.cs" />
     <Compile Include="src\Disk\DiskParameter.cs" />
     <Compile Include="src\Disk\DiskType.cs" />
-    <Compile Include="src\HuBasic\HuBasicDisk.cs" />
-    <Compile Include="src\HuBasic\HuBasicDiskEntry.cs" />
-    <Compile Include="src\HuBasic\HuBasicDiskImage.cs" />
     <Compile Include="src\Program.cs" />
-    <Compile Include="src\HuBasic\HuFileEntry.cs" />
     <Compile Include="src\Utils\Log.cs" />
     <Compile Include="src\Utils\MiniOption.cs" />
     <Compile Include="src\Disk\SectorData.cs" />
     <Compile Include="src\Disk\TrackFormat.cs" />
-    <Compile Include="src\HuBasic\Setting.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">

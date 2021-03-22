@@ -2,7 +2,7 @@
 using System.IO;
 
 namespace Disk {
-    class HuFileEntry {
+    public class HuFileEntry {
         public int FileMode;
         public string Name;
         public string Extension;
@@ -20,6 +20,10 @@ namespace Disk {
         public byte[] DateTimeData = new byte[6];
         internal bool IsIplEntry;
 
+        /// <summary>
+        /// ファイル名.拡張子のファイル名を得る
+        /// </summary>
+        /// <returns></returns>
         public string GetFilename() {
             if (Extension.Length == 0) return Name;
             return Name + "." + Extension;
@@ -31,19 +35,19 @@ namespace Disk {
             string ExecuteAddressText = ExecuteAddress.ToString("X4");
 
             string AddressText = $"Load:{LoadAddressText,-5} Exec:{ExecuteAddressText,-5}";
-            string BasicInfoText = $"{GetFilename(),-16} Type:{TypeText,4} Date:{GetFileDate()} Size:{Size,-5}";
+            string BasicInfoText = $"{GetFilename(),-16} Type:{TypeText,4} Date:{GetDateText()} Size:{Size,-5}";
 
             return $"{BasicInfoText} {AddressText} Start:{StartCluster,5}";
         }
 
-        private string GetTypeText() {
+        public string GetTypeText() {
             if (IsDirectory) return "DIR";
             if (IsAscii) return "ASC";
             if (IsBinary) return "BIN";
             return "FILE";
         }
 
-        private string GetFileDate() {
+        public string GetDateText() {
             int Year = ConvertFromBCD(DateTimeData[0]);
             Year = Year < 80 ? 2000 + Year : 1900 + Year;
             int Month = (DateTimeData[1] >> 4);

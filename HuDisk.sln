@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HuDisk", "HuDisk\HuDisk.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HuDiskTests", "HuDiskTests\HuDiskTests.csproj", "{CA77A25B-54CF-4EA3-9EDF-E43254356795}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HuDiskG", "HuDiskG\HuDiskG.csproj", "{B061D1DE-9DBF-49D7-9D6B-89B75310A1D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{CA77A25B-54CF-4EA3-9EDF-E43254356795}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA77A25B-54CF-4EA3-9EDF-E43254356795}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA77A25B-54CF-4EA3-9EDF-E43254356795}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B061D1DE-9DBF-49D7-9D6B-89B75310A1D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B061D1DE-9DBF-49D7-9D6B-89B75310A1D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B061D1DE-9DBF-49D7-9D6B-89B75310A1D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B061D1DE-9DBF-49D7-9D6B-89B75310A1D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -27,6 +27,24 @@ namespace Disk {
         }
 
 
+
+        /// <summary>
+        /// ファイル追加
+        /// </summary>
+        /// <param name="FilePathData">追加するファイルパス</param>
+        /// <param name="EntryName">追加するエントリ名</param>
+        /// <returns></returns>
+
+        public bool AddFile(IEnumerable<string> FilePathData, string EntryName = null) {
+
+            foreach (var s in FilePathData) {
+                if (!AddFile(s, EntryName)) return false;
+            }
+
+            WriteImage();
+            return true;
+        }
+
         /// <summary>
         /// ファイルの追加
         /// </summary>
@@ -89,6 +107,18 @@ namespace Disk {
         }
 
         /// <summary>
+        /// ファイル削除。イメージにも書き込む。
+        /// </summary>
+        /// <param name="Pattern"></param>
+        public void Delete(IEnumerable<HuFileEntry> EntryData) {
+            foreach (var Entry in EntryData) {
+                DiskEntry.Delete(Entry);
+            }
+            WriteImage();
+        }
+
+
+        /// <summary>
         /// ファイルをすべて削除。イメージにも書き込む。
         /// </summary>
         public void DeleteAll() {
@@ -96,22 +126,6 @@ namespace Disk {
             WriteImage();
         }
 
-        /// <summary>
-        /// ファイル追加
-        /// </summary>
-        /// <param name="FilePathData">追加するファイルパス</param>
-        /// <param name="EntryName">追加するエントリ名</param>
-        /// <returns></returns>
-
-        public bool AddFile(IEnumerable<string> FilePathData, string EntryName = null) {
-
-            foreach (var s in FilePathData) {
-                if (!AddFile(s, EntryName)) return false;
-            }
-
-            WriteImage();
-            return true;
-        }
 
         /// <summary>
         /// イメージの書き出し
@@ -136,14 +150,17 @@ namespace Disk {
         }
 
         /// <summary>
-        /// ファイル展開
+        /// ファイルをディレクトリに展開する
         /// </summary>
-        /// <param name="fs"></param>
-        /// <param name="StartCluster">開始クラスタ</param>
-        /// <param name="FileSize"></param>
-        public void Extract(Stream fs, int StartCluster, int FileSize) {
+        /// <param name="Directory"></param>
+        /// <param name="Files"></param>
+        public void ExtractToDirectory(string Directory, IEnumerable<HuFileEntry> Files) {
+            // 展開
+            foreach (var fe in Files) {
+                var OutputName = Path.Combine(Directory, fe.GetFilename());
+                ExtractFile(OutputName, fe);
+            }
         }
-
 
         /// <summary>
         /// ファイルの追加
@@ -224,6 +241,9 @@ namespace Disk {
                 ExtractFile(OutputName, fe);
             }
         }
+
+
+
 
 
 
